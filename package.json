@@ -1,0 +1,24 @@
+{
+  "name": "ters-acik-artirma",
+  "version": "1.0.0",
+  "description": "Ters açık artırma platformu",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-deps": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": [
+    "açık",
+    "artırma",
+    "ters",
+    "e-ticaret"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  }
+} 
