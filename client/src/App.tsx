@@ -13,9 +13,10 @@ import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import CategoriesPage from './pages/CategoriesPage';
-// import ListingsPage from './pages/ListingsPage';
-// import ListingDetailPage from './pages/ListingDetailPage';
-// import CreateListingPage from './pages/CreateListingPage';
+import AdminCategoriesPage from './pages/AdminCategoriesPage';
+import CreateListingPage from './pages/CreateListingPage';
+import ListingDetailPage from './pages/ListingDetailPage';
+import ListingsPage from './pages/ListingsPage';
 // import MyListingsPage from './pages/MyListingsPage';
 // import MyBidsPage from './pages/MyBidsPage';
 
@@ -207,7 +208,19 @@ const AppContent: React.FC = () => {
           }
         />
         
+        <Route
+          path="/admin/categories"
+          element={
+            <AdminRoute>
+              <AdminCategoriesPage />
+            </AdminRoute>
+          }
+        />
+        
         <Route path="/categories" element={<CategoriesPage />} />
+        <Route path="/listings" element={<ListingsPage />} />
+        <Route path="/create-listing" element={<CreateListingPage />} />
+        <Route path="/listings/:id" element={<ListingDetailPage />} />
         {/* <Route path="/listings" element={<ListingsPage />} />
         <Route path="/listings/:id" element={<ListingDetailPage />} />
         

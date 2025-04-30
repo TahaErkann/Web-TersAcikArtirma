@@ -1,9 +1,11 @@
 // Kullanıcı
 export interface User {
   _id: string;
-  name: string;
+  username: string;
   email: string;
-  profilePicture?: string;
+  isAdmin?: boolean;
+  isApproved?: boolean;
+  name?: string;
   companyInfo?: {
     companyName?: string;
     address?: string;
@@ -12,12 +14,8 @@ export interface User {
     taxNumber?: string;
     description?: string;
   };
-  isAdmin: boolean;
-  isApproved: boolean;
-  isRejected: boolean;
-  rejectionReason?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Kategori
@@ -27,37 +25,44 @@ export interface Category {
   description?: string;
   icon?: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Teklif
 export interface Bid {
-  _id: string;
-  bidder: User | string;
-  price: number;
-  createdAt: string;
+  user: User | string;
+  amount: number;
+  timestamp: string;
+  _id?: string;
 }
 
 // İlan
 export interface Listing {
-  _id: string;
+  _id?: string;
   title: string;
   description: string;
-  category: Category | string;
-  owner: User | string;
-  quantity: number;
-  unit: string;
-  initialMaxPrice: number;
-  currentPrice?: number;
-  images: string[];
+  startingPrice: number;
+  currentPrice: number;
+  endDate: string;
+  status: 'active' | 'ended' | 'cancelled';
+  seller: User | string;
   bids: Bid[];
-  status: 'active' | 'completed' | 'cancelled' | 'expired';
-  expiresAt: string;
-  isApproved: boolean;
-  winner?: User | string;
-  createdAt: string;
-  updatedAt: string;
+  images: string[];
+  category: string | Category;
+  location: string;
+  createdAt?: string;
+  updatedAt?: string;
+  quantity?: number;
+  unit?: string;
+  items?: Array<{
+    name: string;
+    quantity: number;
+    unit: string;
+    description?: string;
+  }>;
+  expiresAt?: string;
+  owner?: User | string;
 }
 
 // API yanıt tipleri
@@ -79,7 +84,7 @@ export interface AuthContextType {
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<AuthResult>;
-  register: (name: string, email: string, password: string) => Promise<AuthResult>;
+  register: (username: string, email: string, password: string) => Promise<AuthResult>;
   logout: () => void;
   updateUser: (user: User) => void;
 }
@@ -91,8 +96,17 @@ export interface AuthState {
   error: string | null;
 }
 
+// Socket Context
+export interface SocketContextType {
+  socket: any;
+  connected: boolean;
+  on: (event: string, callback: (...args: any[]) => void) => void;
+  off: (event: string, callback: (...args: any[]) => void) => void;
+  emit: (event: string, data: any) => void;
+}
+
 // LocalStorage anahtar isimleri
 export const LOCAL_STORAGE_KEYS = {
-  TOKEN: 'ters_artirma_token',
-  USER: 'ters_artirma_user'
+  TOKEN: 'ters_acik_artirma_token',
+  USER: 'ters_acik_artirma_user'
 }; 

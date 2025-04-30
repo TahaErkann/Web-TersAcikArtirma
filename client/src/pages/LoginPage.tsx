@@ -406,21 +406,21 @@ const LoginPage: React.FC = () => {
                 <Box sx={{ maxWidth: 480, mx: 'auto' }}>
                   <Typography variant="h3" fontWeight={700} gutterBottom>
                     Firmanız İçin En Uygun Fiyatları Bulun
-                  </Typography>
-                  
+              </Typography>
+              
                   <Typography variant="body1" sx={{ mb: 4, opacity: 0.8 }}>
                     Ters açık artırma platformumuzda, alıcılar ihtiyaçlarını belirtir ve satıcılar rekabetçi teklifler verir. 
                     En düşük teklifi veren kazanır!
-                  </Typography>
-                  
+              </Typography>
+              
                   <Stack spacing={4} sx={{ mt: 5 }}>
-                    {features.map((feature, index) => (
+                {features.map((feature, index) => (
                       <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                    <Box 
+                      sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
                             width: 36,
                             height: 36,
                             borderRadius: 1,
@@ -428,22 +428,22 @@ const LoginPage: React.FC = () => {
                             color: 'primary.dark',
                             fontSize: 16,
                             fontWeight: 800,
-                            mr: 2,
+                          mr: 2,
                             flexShrink: 0
-                          }}
-                        >
-                          {index + 1}
-                        </Box>
-                        <Box>
-                          <Typography variant="h6" fontWeight={600} gutterBottom>
-                            {feature.title}
-                          </Typography>
-                          <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                            {feature.description}
-                          </Typography>
-                        </Box>
+                        }}
+                      >
+                        {index + 1}
                       </Box>
-                    ))}
+                      <Box>
+                          <Typography variant="h6" fontWeight={600} gutterBottom>
+                          {feature.title}
+                        </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                          {feature.description}
+                        </Typography>
+                      </Box>
+                    </Box>
+                ))}
                   </Stack>
                 </Box>
               </Box>

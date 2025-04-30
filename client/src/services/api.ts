@@ -1,36 +1,37 @@
 import axios from 'axios';
 import { LOCAL_STORAGE_KEYS } from '../types';
 
-const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+// API url'sini ayarla
+const API_URL = 'http://localhost:5001/api';
 
 const api = axios.create({
-  baseURL: apiUrl,
+  baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
-// Her istekte token ekleyen interceptor
+// İstek interceptor
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Token süresi dolduğunda otomatik çıkış yapan interceptor
+// Yanıt interceptor
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
-      localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
-      window.location.href = '/login';
-    }
+    console.error('API İsteği Hatası:', error);
     return Promise.reject(error);
   }
 );

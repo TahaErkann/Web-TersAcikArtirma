@@ -1,21 +1,27 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../hooks/useAuth';
+import { SocketContextType } from '../types';
 
-const SocketContext = createContext();
+const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
-export const useSocket = () => useContext(SocketContext);
+export const useSocket = () => {
+  const context = useContext(SocketContext);
+  if (!context) {
+    throw new Error('useSocket must be used within a SocketProvider');
+  }
+  return context;
+};
 
-export const SocketProvider = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
-  const [socket, setSocket] = useState(null);
-  const [connected, setConnected] = useState(false);
+export const SocketProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const { user } = useAuth();
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [connected, setConnected] = useState<boolean>(false);
 
   useEffect(() => {
     // Bağlantıyı kur
     const setupSocket = () => {
-      const socketInstance = io(process.env.REACT_APP_API_URL || 'http://localhost:5001', {
-        auth: { token: localStorage.getItem('token') },
+      const socketInstance = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
         transports: ['websocket', 'polling'],
       });
 
@@ -39,9 +45,9 @@ export const SocketProvider = ({ children }) => {
       return socketInstance;
     };
 
-    // Kimlik doğrulama yapıldığında soketi oluştur
-    let socketInstance = null;
-    if (isAuthenticated && user) {
+    // Socket bağlantısını kur
+    let socketInstance: Socket | null = null;
+    if (user) {
       socketInstance = setupSocket();
     }
 
@@ -51,24 +57,24 @@ export const SocketProvider = ({ children }) => {
         socketInstance.disconnect();
       }
     };
-  }, [isAuthenticated, user]);
+  }, [user]);
 
   // Dinleyici eklemek için yardımcı fonksiyon
-  const on = (event, callback) => {
+  const on = (event: string, callback: (...args: any[]) => void) => {
     if (socket) {
       socket.on(event, callback);
     }
   };
 
   // Dinleyici kaldırmak için yardımcı fonksiyon
-  const off = (event, callback) => {
+  const off = (event: string, callback: (...args: any[]) => void) => {
     if (socket) {
       socket.off(event, callback);
     }
   };
 
   // Event göndermek için yardımcı fonksiyon
-  const emit = (event, data) => {
+  const emit = (event: string, data: any) => {
     if (socket) {
       socket.emit(event, data);
     }

@@ -17,6 +17,25 @@ const BidSchema = new Schema({
   }
 });
 
+// İlan içindeki her bir ürün için şema
+const ListingItemSchema = new Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true
+  },
+  unit: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String
+  }
+});
+
 const ListingSchema = new Schema({
   title: {
     type: String,
@@ -36,6 +55,9 @@ const ListingSchema = new Schema({
     ref: 'User',
     required: true
   },
+  // Ürün listesi - detaylı bilgi için
+  items: [ListingItemSchema],
+  // Toplam miktar bilgisi - geriye dönük uyumluluk için
   quantity: {
     type: Number,
     required: true

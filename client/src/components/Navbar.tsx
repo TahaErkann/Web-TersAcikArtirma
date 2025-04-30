@@ -40,10 +40,11 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 // TODO: Bu interface'i types klasörüne taşı
 interface User {
   _id: string;
-  name: string;
+  username: string;
+  name?: string;
   profilePicture?: string;
-  isAdmin: boolean;
-  isApproved: boolean;
+  isAdmin?: boolean;
+  isApproved?: boolean;
 }
 
 interface NavbarProps {
@@ -237,7 +238,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, logout }) => {
                 >
                   {user.profilePicture ? (
                     <Avatar 
-                      alt={user.name} 
+                      alt={user.name || user.username} 
                       src={user.profilePicture} 
                       sx={{ width: 32, height: 32 }}
                     />
@@ -249,7 +250,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, logout }) => {
                         bgcolor: 'primary.main' 
                       }}
                     >
-                      {user.name.charAt(0)}
+                      {user.name?.charAt(0) || user.username.charAt(0)}
                     </Avatar>
                   )}
                   <Typography 
@@ -259,7 +260,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, logout }) => {
                       display: { xs: 'none', sm: 'block' }
                     }}
                   >
-                    {user.name.split(' ')[0]}
+                    {user.name || user.username}
                   </Typography>
                 </Box>
                 

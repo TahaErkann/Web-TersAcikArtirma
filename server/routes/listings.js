@@ -6,6 +6,9 @@ const { authenticateToken, isApprovedCompany } = require('../middleware/auth');
 // Tüm ilanları getir (genel erişim)
 router.get('/', listingController.getAllListings);
 
+// Aktif ilanları getir (genel erişim)
+router.get('/active', listingController.getActiveListings);
+
 // İlan detayını getir (genel erişim)
 router.get('/:id', listingController.getListingById);
 

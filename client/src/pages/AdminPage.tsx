@@ -44,11 +44,13 @@ import {
   Email, 
   LocationOn, 
   Badge,
-  Visibility
+  Visibility,
+  Category as CategoryIcon
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { getAllUsers, approveUser, rejectUser } from '../services/authService';
 import { User } from '../types';
+import { Link as RouterLink } from 'react-router-dom';
 
 // TabPanel component
 function TabPanel(props) {
@@ -211,6 +213,35 @@ const AdminPage: React.FC = () => {
   return (
     <Box sx={{ py: { xs: 4, md: 6 }, backgroundColor: 'background.default' }}>
       <Container maxWidth="lg">
+        <Paper
+          elevation={0}
+          sx={{ 
+            p: 3, 
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            mb: 4
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h5" gutterBottom component="h1" fontWeight="bold">
+              Admin Yönetim Paneli
+            </Typography>
+            
+            <Stack direction="row" spacing={2}>
+              <Button
+                component={RouterLink}
+                to="/admin/categories"
+                variant="outlined"
+                color="primary"
+                startIcon={<CategoryIcon />}
+                sx={{ borderRadius: 2 }}
+              >
+                Kategori Yönetimi
+              </Button>
+            </Stack>
+          </Box>
+          
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" fontWeight={700} gutterBottom>
             Yönetim Paneli
@@ -678,6 +709,7 @@ const AdminPage: React.FC = () => {
               </TabPanel>
             </>
           )}
+          </Paper>
         </Paper>
       </Container>
       

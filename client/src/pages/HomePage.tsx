@@ -29,7 +29,7 @@ import {
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
-import axios from 'axios';
+import api from '../services/api';
 
 const HomePage: React.FC = () => {
   const theme = useTheme();
@@ -52,11 +52,11 @@ const HomePage: React.FC = () => {
     const fetchData = async () => {
       try {
         // Aktif ilanları getir
-        const listingsResponse = await axios.get('/api/listings?status=active');
+        const listingsResponse = await api.get('/listings/active');
         setActiveListings(listingsResponse.data.length);
         
         // Kategorileri getir
-        const categoriesResponse = await axios.get('/api/categories');
+        const categoriesResponse = await api.get('/categories');
         const categoryData = categoriesResponse.data;
         
         // Kategori sayılarını güncelle
@@ -66,7 +66,7 @@ const HomePage: React.FC = () => {
             categories.map(async (cat) => {
               const catId = categoryData.find(c => c.name === cat.name)?._id;
               if (catId) {
-                const catListings = await axios.get(`/api/listings?category=${catId}`);
+                const catListings = await api.get(`/listings?category=${catId}`);
                 return { ...cat, count: catListings.data.length };
               }
               return cat;

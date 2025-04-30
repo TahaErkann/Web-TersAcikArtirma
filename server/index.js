@@ -116,6 +116,11 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/listings', require('./routes/listings'));
 app.use('/api/categories', require('./routes/categories'));
 
+// Sağlık kontrolü endpoint'i
+app.get('/health-check', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Socket.io
 io.on('connection', (socket) => {
   console.log('Bir kullanıcı bağlandı');

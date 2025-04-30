@@ -26,6 +26,20 @@ exports.getAllListings = async (req, res) => {
   }
 };
 
+// Sadece aktif ilanları getir
+exports.getActiveListings = async (req, res) => {
+  try {
+    const listings = await Listing.find({ status: 'active' })
+      .populate('owner', 'name companyInfo.companyName')
+      .populate('category', 'name')
+      .sort({ createdAt: -1 });
+    
+    res.json(listings);
+  } catch (error) {
+    res.status(500).json({ message: 'Sunucu hatası', error: error.message });
+  }
+};
+
 // İlan detayı getir
 exports.getListingById = async (req, res) => {
   try {
@@ -38,8 +52,34 @@ exports.getListingById = async (req, res) => {
       return res.status(404).json({ message: 'İlan bulunamadı' });
     }
     
+    // Eski veritabanı kayıtları için items alanını oluştur
+    if (!listing.items || !Array.isArray(listing.items) || listing.items.length === 0) {
+      // Eğer quantity ve unit alanları varsa, bunları kullanarak bir öğe oluştur
+      if (listing.quantity !== undefined && listing.unit) {
+        listing.items = [{
+          name: listing.title || 'Ürün',
+          quantity: listing.quantity,
+          unit: listing.unit,
+          description: listing.description || ''
+        }];
+        
+        // Eğer gerçek bir veritabanı kaydıysa, güncelle
+        if (!req.query.noUpdate) {
+          try {
+            await Listing.findByIdAndUpdate(listing._id, { items: listing.items });
+            console.log(`İlan güncellendi ${listing._id}: items alanı eklendi`);
+          } catch (updateError) {
+            console.error('İlan güncellenirken hata:', updateError);
+          }
+        }
+      } else {
+        listing.items = []; // Bilgi yoksa boş dizi
+      }
+    }
+    
     res.json(listing);
   } catch (error) {
+    console.error('İlan detayı getirilirken hata:', error);
     res.status(500).json({ message: 'Sunucu hatası', error: error.message });
   }
 };
@@ -54,7 +94,10 @@ exports.createListing = async (req, res) => {
       quantity, 
       unit, 
       initialMaxPrice, 
-      images 
+      images,
+      items,
+      location,
+      expiresAt
     } = req.body;
     
     // Kullanıcı onaylanmış mı kontrol et
@@ -63,19 +106,50 @@ exports.createListing = async (req, res) => {
       return res.status(403).json({ message: 'Firma onaylanmadı. İlan oluşturmak için firma onayı gerekiyor.' });
     }
     
-    const newListing = new Listing({
+    // İlan verilerini hazırla
+    let listingData = {
       title,
       description,
       category,
       owner: req.user._id,
-      quantity,
-      unit,
       initialMaxPrice,
       currentPrice: initialMaxPrice,
       images: images || [],
-      expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000) // 6 saat
-    });
+      location: location || '',
+      expiresAt: expiresAt ? new Date(expiresAt) : new Date(Date.now() + 6 * 60 * 60 * 1000) // Parametre gelmediyse 6 saat sonra
+    };
     
+    // İlan öğelerini (items) kontrol et ve ekle
+    if (items && Array.isArray(items) && items.length > 0) {
+      // Öğeleri doğrula ve dönüştür
+      const validItems = items.map(item => ({
+        name: item.name || title, // İsim yoksa ilan başlığını kullan
+        quantity: Number(item.quantity) || 1,
+        unit: item.unit || 'Adet',
+        description: item.description || ''
+      }));
+      
+      // Toplam miktarı hesapla (geriye dönük uyumluluk için)
+      const totalQuantity = validItems.reduce((sum, item) => sum + item.quantity, 0);
+      
+      listingData.items = validItems;
+      listingData.quantity = totalQuantity;
+      listingData.unit = validItems[0].unit;
+    } else {
+      // İlan öğeleri gönderilmemişse, quantity ve unit kullanarak bir öğe oluştur
+      const defaultItem = {
+        name: title, // İlan başlığını kullan
+        quantity: quantity || 1,
+        unit: unit || 'Adet',
+        description: description || ''
+      };
+      
+      listingData.items = [defaultItem];
+      listingData.quantity = quantity || 1;
+      listingData.unit = unit || 'Adet';
+    }
+    
+    const newListing = new Listing(listingData);
     await newListing.save();
     
     // İlanı populate et ve socket üzerinden gönder
@@ -90,6 +164,7 @@ exports.createListing = async (req, res) => {
     
     res.status(201).json({ message: 'İlan başarıyla oluşturuldu', listing: newListing });
   } catch (error) {
+    console.error('İlan oluşturma hatası:', error);
     res.status(500).json({ message: 'Sunucu hatası', error: error.message });
   }
 };
