@@ -21,7 +21,7 @@ export const SocketProvider: React.FC<{children: React.ReactNode}> = ({ children
   useEffect(() => {
     // Bağlantıyı kur
     const setupSocket = () => {
-      const socketInstance = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+      const socketInstance = io(process.env.REACT_APP_API_URL || 'http://localhost:5001', {
         transports: ['websocket', 'polling'],
       });
 

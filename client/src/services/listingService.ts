@@ -169,8 +169,37 @@ export const cancelListing = async (id: string): Promise<Listing> => {
 
 // İlana teklif ver
 export const placeBid = async (id: string, amount: number): Promise<Listing> => {
-  const response = await api.post(`/listings/${id}/bid`, { amount });
-  return response.data;
+  console.log(`Teklif gönderiliyor: id=${id}, amount=${amount}`);
+  
+  try {
+    // Değeri doğru formata çevirelim
+    const numericAmount = Number(amount);
+    
+    if (isNaN(numericAmount)) {
+      throw new Error('Geçersiz teklif miktarı');
+    }
+    
+    // Hem price hem de amount parametrelerini gönderelim
+    const response = await api.post(`/listings/${id}/bid`, { 
+      price: numericAmount,
+      amount: numericAmount
+    });
+    
+    console.log(`Teklif yanıtı:`, response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Teklif gönderme hatası:', error);
+    
+    // Sunucudan dönen hata mesajını doğru şekilde alıp gösterelim
+    if (error.response && error.response.data) {
+      if (error.response.data.error) {
+        throw new Error(error.response.data.error);
+      } else if (error.response.data.message) {
+        throw new Error(error.response.data.message);
+      }
+    }
+    throw error;
+  }
 };
 
 // İlanı tamamla/reddet

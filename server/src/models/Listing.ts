@@ -13,6 +13,7 @@ export interface IListing extends Document {
   startingPrice: number;
   currentPrice: number;
   endDate: Date;
+  expiresAt?: Date;
   status: 'active' | 'ended' | 'cancelled';
   seller: IUser['_id'];
   bids: IBid[];

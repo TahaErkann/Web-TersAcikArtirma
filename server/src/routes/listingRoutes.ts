@@ -177,25 +177,37 @@ router.get('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Geçersiz ilan ID' });
     }
     
-    let listing = await Listing.findById(id)
-      .populate('seller', 'username email')
-      .populate('category', 'name')
-      .populate({
-        path: 'bids',
-        populate: {
-          path: 'user',
+    console.log(`İlan detayı isteniyor, ID: ${id}`);
+    
+    try {
+      let listing = await Listing.findById(id)
+        .populate('seller', 'username email')
+        .populate('category', 'name')
+        .populate({
+          path: 'bids.user',
           select: 'username email'
-        }
-      });
+        });
+        
+      if (!listing) {
+        return res.status(404).json({ error: 'İlan bulunamadı' });
+      }
       
-    if (!listing) {
-      return res.status(404).json({ error: 'İlan bulunamadı' });
+      // İlan durumunu kontrol et ve güncelle
+      listing = await checkAndUpdateListingStatus(listing);
+      
+      return res.json(listing);
+    } catch (populateError) {
+      console.error('Populate işlemi sırasında hata:', populateError);
+      
+      // Hata durumunda, populate olmadan denemeyi dene
+      const simpleListing = await Listing.findById(id);
+      
+      if (!simpleListing) {
+        return res.status(404).json({ error: 'İlan bulunamadı' });
+      }
+      
+      return res.json(simpleListing);
     }
-    
-    // İlan durumunu kontrol et ve güncelle
-    listing = await checkAndUpdateListingStatus(listing);
-    
-    return res.json(listing);
   } catch (err) {
     console.error('İlan detaylarını getirme hatası:', err);
     return res.status(500).json({ error: 'İlan detaylarını getirme hatası' });
@@ -299,7 +311,12 @@ router.delete('/:id', auth, async (req, res) => {
 router.post('/:id/bid', auth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { amount } = req.body;
+    const { amount, price } = req.body;
+    
+    // Her iki alanı da kontrol ederek teklifin hangi parametre ile geldiğini anlayalım
+    const bidAmount = price !== undefined ? price : amount;
+    
+    console.log(`Teklif verme isteği alındı: İlan ID: ${id}, Amount: ${amount}, Price: ${price}, İşlenecek: ${bidAmount}`);
     
     // ID'nin geçerli olup olmadığını kontrol et
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -307,11 +324,11 @@ router.post('/:id/bid', auth, async (req, res) => {
     }
     
     // Teklif miktarını kontrol et
-    if (!amount) {
+    if (bidAmount === undefined || bidAmount === null) {
       return res.status(400).json({ error: 'Teklif miktarı belirtilmelidir' });
     }
     
-    const numericAmount = parseFloat(amount.toString());
+    const numericAmount = parseFloat(bidAmount.toString());
     if (isNaN(numericAmount) || numericAmount <= 0) {
       return res.status(400).json({ error: 'Geçerli bir teklif miktarı girin' });
     }
@@ -325,7 +342,7 @@ router.post('/:id/bid', auth, async (req, res) => {
     
     // İlanın aktif olup olmadığını kontrol et
     if (listing.status !== 'active') {
-      return res.status(400).json({ error: 'Bu ilana artık teklif verilemez' });
+      return res.status(400).json({ error: `Bu ilana artık teklif verilemez. İlan durumu: ${listing.status}` });
     }
     
     // Bitiş tarihinin geçip geçmediğini kontrol et
@@ -334,13 +351,15 @@ router.post('/:id/bid', auth, async (req, res) => {
     }
     
     // Kendimize ait ilana teklif veremeyiz
-    if ((listing as any).seller.toString() === req.user.id) {
+    if ((listing as any).seller?.toString() === req.user.id) {
       return res.status(400).json({ error: 'Kendi ilanınıza teklif veremezsiniz' });
     }
     
     // Teklif miktarı, mevcut fiyattan düşük olmalı (ters açık artırma)
     if (numericAmount >= listing.currentPrice) {
-      return res.status(400).json({ error: 'Teklif miktarı mevcut fiyattan düşük olmalıdır' });
+      return res.status(400).json({ 
+        error: `Teklif miktarı mevcut fiyattan düşük olmalıdır. Girilen: ${numericAmount}, Mevcut: ${listing.currentPrice}` 
+      });
     }
     
     // 6 saat sonrası için son geçerlilik tarihi
@@ -354,30 +373,44 @@ router.post('/:id/bid', auth, async (req, res) => {
       timestamp: new Date()
     };
     
+    // Teklifi ekle
     listing.bids.push(bid);
     
     // Güncel fiyatı güncelle
     listing.currentPrice = numericAmount;
     
-    // İlanı güncelle
-    await listing.save();
+    // Bitiş tarihini güncelle
+    if ('expiresAt' in listing) {
+      listing.expiresAt = expiresAt;
+    }
     
-    // Güncellenmiş ilanı populate et ve geri döndür
-    const updatedListing = await Listing.findById(id)
-      .populate('seller', 'username email')
-      .populate('category', 'name')
-      .populate({
-        path: 'bids',
-        populate: {
-          path: 'user',
+    // İlanı güncelle
+    console.log(`İlanı kaydetme öncesi: ${JSON.stringify(listing, null, 2)}`);
+    await listing.save();
+    console.log(`İlan başarıyla kaydedildi`);
+    
+    try {
+      // Güncellenmiş ilanı populate et ve geri döndür
+      const updatedListing = await Listing.findById(id)
+        .populate('seller', 'username email')
+        .populate('category', 'name')
+        .populate({
+          path: 'bids.user',
           select: 'username email'
-        }
-      });
+        });
       
-    return res.json(updatedListing);
+      console.log(`Teklif başarılı! İlan ID: ${id}, Teklif: ${numericAmount}, Kullanıcı: ${req.user.id}`);
+      return res.json(updatedListing);
+    } catch (populateError) {
+      console.error("Populate işlemi sırasında hata:", populateError);
+      
+      // Hata durumunda güncel ilanı doğrudan döndür
+      const simpleListing = await Listing.findById(id);
+      return res.json(simpleListing);
+    }
   } catch (err) {
     console.error('Teklif verme hatası:', err);
-    return res.status(500).json({ error: 'Teklif verme hatası' });
+    return res.status(500).json({ error: 'Teklif verme hatası', details: err.message });
   }
 });
 

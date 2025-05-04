@@ -32,7 +32,9 @@ export interface Category {
 // Teklif
 export interface Bid {
   user: User | string;
+  bidder?: User | string;
   amount: number;
+  price?: number;
   timestamp: string;
   _id?: string;
 }

@@ -268,18 +268,62 @@ const ListingDetailPage: React.FC = () => {
       const updatedListing = await placeBid(id, numericAmount);
       console.log("Teklif başarılı, güncellenen ilan:", updatedListing);
       
-      // Listeyi güncelle
-      setListing(updatedListing);
+      // API'den gelen verileri doğrula ve gerekirse eski verilerle birleştir
+      if (updatedListing && listing) {
+        // Mevcut ilan ve güncellenen ilan verilerini birleştir
+        const mergedListing = {
+          ...listing, // Mevcut tüm verileri koru
+          ...updatedListing, // Güncellenen verileri ekle
+          
+          // Aşağıdaki alanları doğrula, yoksa mevcut ilan verilerini kullan
+          title: updatedListing.title || listing.title,
+          description: updatedListing.description || listing.description,
+          startingPrice: updatedListing.startingPrice || listing.startingPrice,
+          currentPrice: updatedListing.currentPrice || listing.currentPrice,
+          status: updatedListing.status || listing.status || 'active',
+          
+          // Eğer API'den dönen bitiş tarihi yok veya geçersizse, mevcut tarihi kullan
+          endDate: updatedListing.endDate && new Date(updatedListing.endDate).toString() !== 'Invalid Date' 
+            ? updatedListing.endDate : listing.endDate,
+            
+          // Eğer API'den dönen teklifler yoksa veya geçersizse, mevcut tekliflere yeni teklifi ekle
+          bids: Array.isArray(updatedListing.bids) && updatedListing.bids.length > 0 
+            ? updatedListing.bids 
+            : [...listing.bids, { 
+                user: user?._id || '', // user._id, teklif veren kullanıcının ID'si
+                amount: numericAmount, 
+                timestamp: new Date().toISOString() 
+              } as Bid], // Bid tipine cast ediyoruz
+        };
+        
+        console.log("Birleştirilmiş ilan verileri:", mergedListing);
+        setListing(mergedListing);
+      } else {
+        // Eğer API'den veri dönmezse veya sorun olursa, ilan bilgilerini tekrar yükle
+        console.log("API'den yeterli veri dönmedi, ilan bilgileri yeniden yükleniyor");
+        const refreshedListing = await getListingById(id);
+        setListing(refreshedListing);
+      }
       
       // Modalı kapat
       setBidDialogOpen(false);
       
       // Yeni bir teklif miktarı ayarla (şimdikinden biraz daha düşük)
-      if (updatedListing.currentPrice) {
+      if (updatedListing?.currentPrice) {
         setBidAmount((updatedListing.currentPrice * 0.95).toFixed(2));
+      } else if (listing?.currentPrice) {
+        setBidAmount((listing.currentPrice * 0.95).toFixed(2));
       }
     } catch (error: any) {
       console.error("Teklif verme hatası:", error);
+      console.error("Hata detayları:", {
+        message: error.message,
+        response: error.response,
+        data: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText
+      });
+      
       if (error.response && error.response.data && error.response.data.error) {
         setBidError(error.response.data.error);
       } else if (error instanceof Error) {
