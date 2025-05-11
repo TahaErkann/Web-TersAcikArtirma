@@ -43,43 +43,89 @@ exports.getActiveListings = async (req, res) => {
 // İlan detayı getir
 exports.getListingById = async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id)
-      .populate('owner', 'name companyInfo')
-      .populate('category', 'name')
-      .populate('bids.user', 'name companyInfo.companyName');
+    const { fullDetails } = req.query;
+    console.log(`getListingById çağrıldı - ID: ${req.params.id}, fullDetails: ${fullDetails}`);
+    
+    let populateOptions = {
+      owner: 'name companyInfo',
+      category: 'name'
+    };
+    
+    // Tam detay isteniyorsa, teklif veren kullanıcıları daha detaylı getir
+    if (fullDetails === 'true') {
+      console.log("Tam detay modu aktif - tüm kullanıcı bilgileri dahil edilecek");
+      populateOptions.owner = 'name email phone address companyInfo';
+      populateOptions['bids.user'] = 'name email phone address companyInfo';
+      populateOptions['bids.bidder'] = 'name email phone address companyInfo';
+    } else {
+      populateOptions['bids.user'] = 'name companyInfo.companyName';
+      populateOptions['bids.bidder'] = 'name companyInfo.companyName';
+    }
+    
+    // Populate işlemini dinamik olarak yapılandır
+    const populateArray = Object.keys(populateOptions).map(path => ({
+      path,
+      select: populateOptions[path]
+    }));
+    
+    console.log("Populate konfigürasyonu:", JSON.stringify(populateArray, null, 2));
+    
+    const listing = await Listing.findById(req.params.id).populate(populateArray);
     
     if (!listing) {
       return res.status(404).json({ message: 'İlan bulunamadı' });
     }
     
-    // Eski veritabanı kayıtları için items alanını oluştur
-    if (!listing.items || !Array.isArray(listing.items) || listing.items.length === 0) {
-      // Eğer quantity ve unit alanları varsa, bunları kullanarak bir öğe oluştur
-      if (listing.quantity !== undefined && listing.unit) {
-        listing.items = [{
-          name: listing.title || 'Ürün',
-          quantity: listing.quantity,
-          unit: listing.unit,
-          description: listing.description || ''
-        }];
+    // Debug için - populate işlemi doğru çalışıyor mu kontrol
+    const bidCount = listing.bids ? listing.bids.length : 0;
+    console.log(`İlan yüklendi - ID: ${listing._id}, Teklif sayısı: ${bidCount}`);
+    
+    if (fullDetails === 'true' && bidCount > 0) {
+      console.log("Tam detay modunda bid bilgileri kontrol ediliyor");
+      // Kabul edilmiş teklifleri kontrol et
+      const acceptedBids = listing.bids.filter(bid => bid.status === 'accepted' || bid.isApproved === true);
+      
+      if (acceptedBids.length > 0) {
+        console.log(`${acceptedBids.length} kabul edilmiş teklif bulundu.`);
         
-        // Eğer gerçek bir veritabanı kaydıysa, güncelle
-        if (!req.query.noUpdate) {
-          try {
-            await Listing.findByIdAndUpdate(listing._id, { items: listing.items });
-            console.log(`İlan güncellendi ${listing._id}: items alanı eklendi`);
-          } catch (updateError) {
-            console.error('İlan güncellenirken hata:', updateError);
+        // Tüm kabul edilmiş teklifleri detaylı olarak logla
+        acceptedBids.forEach(bid => {
+          console.log(`Kabul edilmiş teklif bilgileri, ID: ${bid._id}`);
+          
+          if (bid.bidder) {
+            if (typeof bid.bidder === 'object') {
+              console.log("Teklif veren bilgileri (bidder):", {
+                name: bid.bidder.name,
+                email: bid.bidder.email || 'Yok',
+                phone: bid.bidder.phone || 'Yok',
+                address: bid.bidder.address || 'Yok',
+                hasCompanyInfo: bid.bidder.companyInfo ? true : false
+              });
+            } else {
+              console.log("Teklif veren (bidder) referans olarak geliyor:", bid.bidder);
+            }
           }
-        }
-      } else {
-        listing.items = []; // Bilgi yoksa boş dizi
+          
+          if (bid.user) {
+            if (typeof bid.user === 'object') {
+              console.log("Teklif veren bilgileri (user):", {
+                name: bid.user.name,
+                email: bid.user.email || 'Yok',
+                phone: bid.user.phone || 'Yok',
+                address: bid.user.address || 'Yok',
+                hasCompanyInfo: bid.user.companyInfo ? true : false
+              });
+            } else {
+              console.log("Teklif veren (user) referans olarak geliyor:", bid.user);
+            }
+          }
+        });
       }
     }
     
     res.json(listing);
   } catch (error) {
-    console.error('İlan detayı getirilirken hata:', error);
+    console.error('İlan detayı hatası:', error);
     res.status(500).json({ message: 'Sunucu hatası', error: error.message });
   }
 };
@@ -379,6 +425,37 @@ exports.placeBid = async (req, res) => {
       });
     }
     
+    // Yeni bir teklif geldiğinde tüm mevcut tekliflerin durumunu sıfırla
+    // Hiçbir koşula bağlı olmadan - herhangi bir yeni teklif, tüm mevcut teklifleri geçersiz kılacak
+    if (listing.bids && listing.bids.length > 0) {
+      console.log('Yeni teklif geldi, mevcut teklifler kontrol ediliyor...');
+      
+      // Yeni teklif tutarı, daha önceki tüm tekliflerin durumlarını belirleyecek
+      listing.bids.forEach(bid => {
+        // Teklif tutarını belirle (amount veya price kullan)
+        const bidAmount = bid.amount !== undefined ? bid.amount : bid.price;
+        
+        if (bidAmount !== undefined) {
+          // Yeni teklif gelenden daha pahalı olan teklifleri otomatik reddet
+          if (bidAmount > price) {
+            console.log(`Teklif ${bid._id} otomatik reddediliyor (${bidAmount} > ${price})`);
+            bid.status = 'rejected'; // Daha yüksek teklifleri otomatik reddet
+            bid.isApproved = false;
+          } 
+          // Yeni teklifle aynı veya daha düşük ise pending yap
+          else if (bidAmount >= price) {
+            console.log(`Teklif ${bid._id} beklemede (${bidAmount} >= ${price})`);
+            bid.status = 'pending';
+            bid.isApproved = false;
+          }
+        }
+      });
+      
+      // Değişiklikleri kaydedelim
+      await listing.save();
+      console.log('Tüm tekliflerin durumları güncellendi ve kaydedildi.');
+    }
+    
     // Teklifi ekle
     console.log(`Teklif ekleniyor: User=${req.user._id}, Amount=${bidAmount}`);
     const success = listing.placeBid(req.user._id, bidAmount);
@@ -500,4 +577,260 @@ exports.getMyBids = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Sunucu hatası', error: error.message });
   }
-}; 
+};
+
+// Teklifi kabul et
+exports.acceptBid = async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const bidId = req.params.bidId;
+    
+    // İlanı ve teklifleri bul
+    const listing = await Listing.findById(listingId);
+    
+    if (!listing) {
+      return res.status(404).json({ message: 'İlan bulunamadı' });
+    }
+    
+    // İlan sahibi mi kontrol et
+    if (listing.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Bu işlem için yetkiniz yok' });
+    }
+    
+    // Teklifi bul
+    const bidIndex = listing.bids.findIndex(bid => bid._id.toString() === bidId);
+    
+    if (bidIndex === -1) {
+      return res.status(404).json({ message: 'Teklif bulunamadı' });
+    }
+    
+    const bid = listing.bids[bidIndex];
+    
+    // Teklif zaten onaylanmış mı kontrol et
+    if (bid.status === 'accepted') {
+      return res.status(400).json({ message: 'Bu teklif zaten kabul edilmiş' });
+    }
+    
+    // Teklif zaten reddedilmiş mi kontrol et
+    if (bid.status === 'rejected') {
+      return res.status(400).json({ message: 'Bu teklif zaten reddedilmiş' });
+    }
+    
+    // Teklifin en düşük teklif olup olmadığını kontrol et
+    const lowestBid = listing.getCurrentLowestBid();
+    
+    if (!lowestBid) {
+      return res.status(400).json({ message: 'İlanda geçerli teklif bulunamadı' });
+    }
+    
+    // Onaylanmak istenen teklif en düşük teklif değilse hata döndür
+    if (lowestBid._id.toString() !== bidId) {
+      return res.status(400).json({ 
+        message: 'Sadece en düşük teklifi onaylayabilirsiniz. Bu teklif en düşük teklif değil.' 
+      });
+    }
+    
+    // Tüm tekliflerin durumlarını güncelle
+    const lowestPrice = lowestBid.amount !== undefined ? lowestBid.amount : lowestBid.price;
+    
+    listing.bids.forEach(existingBid => {
+      // Teklif tutarını belirle (amount veya price kullan)
+      const bidAmount = existingBid.amount !== undefined ? existingBid.amount : existingBid.price;
+      
+      if (existingBid._id.toString() !== bidId) {
+        // Daha yüksek fiyat teklifleri otomatik olarak reddedilir
+        if (bidAmount > lowestPrice) {
+          existingBid.status = 'rejected';
+          existingBid.isApproved = false;
+        } 
+        // Eşit veya daha düşük fiyat teklifleri (çok nadir bir durum) beklemede olur
+        else {
+          existingBid.status = 'pending';
+          existingBid.isApproved = false;
+        }
+      }
+    });
+    
+    // Seçilen teklifi kabul et
+    listing.bids[bidIndex].status = 'accepted';
+    listing.bids[bidIndex].isApproved = true;
+    
+    await listing.save();
+    
+    // Güncellenmiş ilanı tam detaylarla populate yaparak döndür
+    const updatedListing = await Listing.findById(listing._id)
+      .populate('owner', 'name email phone address companyInfo')
+      .populate('category', 'name')
+      .populate({
+        path: 'bids.user',
+        select: 'name email phone address companyInfo'
+      })
+      .populate({
+        path: 'bids.bidder',
+        select: 'name email phone address companyInfo'
+      });
+    
+    // Socket.io ile bildirim gönder
+    if (global.io) {
+      // Güvenlik için kullanıcı bilgilerini filtreleyerek gönder
+      const filteredListing = {
+        ...updatedListing.toObject(),
+        bids: updatedListing.bids.map(bid => ({
+          ...bid,
+          user: typeof bid.user === 'object' ? {
+            _id: bid.user._id,
+            name: bid.user.name,
+            companyInfo: bid.user.companyInfo ? {
+              companyName: bid.user.companyInfo.companyName
+            } : undefined
+          } : bid.user,
+          bidder: typeof bid.bidder === 'object' ? {
+            _id: bid.bidder._id,
+            name: bid.bidder.name,
+            companyInfo: bid.bidder.companyInfo ? {
+              companyName: bid.bidder.companyInfo.companyName
+            } : undefined
+          } : bid.bidder
+        }))
+      };
+      
+      global.io.emit('bidUpdate', { 
+        listing: filteredListing,
+        message: 'Bir teklif kabul edildi'
+      });
+    }
+    
+    res.json(updatedListing);
+  } catch (error) {
+    console.error('Teklif kabul hatası:', error);
+    res.status(500).json({ message: 'Sunucu hatası', error: error.message });
+  }
+};
+
+// Teklifi reddet
+exports.rejectBid = async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const bidId = req.params.bidId;
+    
+    // İlanı ve teklifleri bul
+    const listing = await Listing.findById(listingId);
+    
+    if (!listing) {
+      return res.status(404).json({ message: 'İlan bulunamadı' });
+    }
+    
+    // İlan sahibi mi kontrol et
+    if (listing.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Bu işlem için yetkiniz yok' });
+    }
+    
+    // Teklifi bul
+    const bidIndex = listing.bids.findIndex(bid => bid._id.toString() === bidId);
+    
+    if (bidIndex === -1) {
+      return res.status(404).json({ message: 'Teklif bulunamadı' });
+    }
+    
+    const bid = listing.bids[bidIndex];
+    
+    // Teklif zaten onaylanmış mı kontrol et
+    if (bid.status === 'accepted') {
+      return res.status(400).json({ message: 'Bu teklif zaten kabul edilmiş ve reddedilemez' });
+    }
+    
+    // Teklif zaten reddedilmiş mi kontrol et
+    if (bid.status === 'rejected') {
+      return res.status(400).json({ message: 'Bu teklif zaten reddedilmiş' });
+    }
+    
+    // Teklifin en düşük teklif olup olmadığını kontrol et
+    const lowestBid = listing.getCurrentLowestBid();
+    
+    if (!lowestBid) {
+      return res.status(400).json({ message: 'İlanda geçerli teklif bulunamadı' });
+    }
+    
+    // Reddedilmek istenen teklif en düşük teklif değilse hata döndür
+    if (lowestBid._id.toString() !== bidId) {
+      return res.status(400).json({ 
+        message: 'Sadece en düşük teklifi reddedebilirsiniz. Bu teklif en düşük teklif değil.' 
+      });
+    }
+    
+    // Tüm tekliflerin durumlarını güncelle
+    const lowestPrice = lowestBid.amount !== undefined ? lowestBid.amount : lowestBid.price;
+    
+    listing.bids.forEach(existingBid => {
+      // Teklif tutarını belirle (amount veya price kullan)
+      const bidAmount = existingBid.amount !== undefined ? existingBid.amount : existingBid.price;
+      
+      if (existingBid._id.toString() !== bidId) {
+        // Daha yüksek fiyat teklifleri otomatik olarak reddedilir
+        if (bidAmount > lowestPrice) {
+          existingBid.status = 'rejected';
+          existingBid.isApproved = false;
+        } 
+        // Eşit veya daha düşük fiyat teklifleri (çok nadir bir durum) beklemede olur
+        else {
+          existingBid.status = 'pending';
+          existingBid.isApproved = false;
+        }
+      }
+    });
+    
+    // Seçilen teklifi reddet
+    listing.bids[bidIndex].status = 'rejected';
+    listing.bids[bidIndex].isApproved = false;
+    
+    await listing.save();
+    
+    // Güncellenmiş ilanı tam detaylarla populate yaparak döndür
+    const updatedListing = await Listing.findById(listing._id)
+      .populate('owner', 'name email phone address companyInfo')
+      .populate('category', 'name')
+      .populate({
+        path: 'bids.user',
+        select: 'name email phone address companyInfo'
+      })
+      .populate({
+        path: 'bids.bidder',
+        select: 'name email phone address companyInfo'
+      });
+    
+    // Socket.io ile bildirim gönder
+    if (global.io) {
+      // Güvenlik için kullanıcı bilgilerini filtreleyerek gönder
+      const filteredListing = {
+        ...updatedListing.toObject(),
+        bids: updatedListing.bids.map(bid => ({
+          ...bid,
+          user: typeof bid.user === 'object' ? {
+            _id: bid.user._id,
+            name: bid.user.name,
+            companyInfo: bid.user.companyInfo ? {
+              companyName: bid.user.companyInfo.companyName
+            } : undefined
+          } : bid.user,
+          bidder: typeof bid.bidder === 'object' ? {
+            _id: bid.bidder._id,
+            name: bid.bidder.name,
+            companyInfo: bid.bidder.companyInfo ? {
+              companyName: bid.bidder.companyInfo.companyName
+            } : undefined
+          } : bid.bidder
+        }))
+      };
+      
+      global.io.emit('bidUpdate', { 
+        listing: filteredListing,
+        message: 'Bir teklif reddedildi'
+      });
+    }
+    
+    res.json(updatedListing);
+  } catch (error) {
+    console.error('Teklif reddetme hatası:', error);
+    res.status(500).json({ message: 'Sunucu hatası', error: error.message });
+  }
+};

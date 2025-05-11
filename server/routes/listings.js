@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const listingController = require('../controllers/listingController');
 const { authenticateToken, isApprovedCompany } = require('../middleware/auth');
+const acceptBidController = require('../controllers/acceptBid');
 
 // Tüm ilanları getir (genel erişim)
 router.get('/', listingController.getAllListings);
@@ -26,6 +27,12 @@ router.put('/:id/cancel', authenticateToken, listingController.cancelListing);
 
 // İlana teklif ver (onaylı firmalar)
 router.post('/:id/bid', authenticateToken, isApprovedCompany, listingController.placeBid);
+
+// Teklifi kabul et (sadece ilan sahibi)
+router.post('/:id/bids/:bidId/accept', authenticateToken, acceptBidController);
+
+// Teklifi reddet (sadece ilan sahibi)
+router.post('/:id/bids/:bidId/reject', authenticateToken, listingController.rejectBid);
 
 // İlanı tamamla/reddet (ilan sahibi)
 router.put('/:id/complete', authenticateToken, listingController.completeListing);

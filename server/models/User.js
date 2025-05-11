@@ -26,6 +26,15 @@ const UserSchema = new Schema({
     type: String,
     default: ''
   },
+  // Bireysel kullanıcı bilgileri
+  phone: {
+    type: String,
+    default: ''
+  },
+  address: {
+    type: String,
+    default: ''
+  },
   // Firma bilgileri
   companyInfo: {
     companyName: {

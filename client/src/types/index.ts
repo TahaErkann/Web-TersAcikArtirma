@@ -6,6 +6,8 @@ export interface User {
   isAdmin?: boolean;
   isApproved?: boolean;
   name?: string;
+  phone?: string;
+  address?: string;
   companyInfo?: {
     companyName?: string;
     address?: string;
@@ -37,6 +39,8 @@ export interface Bid {
   price?: number;
   timestamp: string;
   _id?: string;
+  status?: 'pending' | 'accepted' | 'rejected' | 'expired';
+  isApproved?: boolean;
 }
 
 // İlan

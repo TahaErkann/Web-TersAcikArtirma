@@ -20,6 +20,15 @@ const BidSchema = new Schema({
   timestamp: {
     type: Date,
     default: Date.now
+  },
+  isApproved: {
+    type: Boolean,
+    default: false
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'accepted', 'rejected', 'expired'],
+    default: 'pending'
   }
 }, { timestamps: true });
 
@@ -151,7 +160,10 @@ ListingSchema.methods.placeBid = function(userId, price) {
         bidder: userId,
         amount: price,
         price: price,
-        timestamp: new Date()
+        timestamp: new Date(),
+        status: 'pending',
+        isApproved: false,
+        expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000) // 6 saat geçerli
       };
       
       console.log('placeBid - Eklenen yeni teklif:', newBid);
@@ -184,7 +196,10 @@ ListingSchema.methods.placeBid = function(userId, price) {
         bidder: userId,
         amount: price,
         price: price,
-        timestamp: new Date()
+        timestamp: new Date(),
+        status: 'pending',
+        isApproved: false,
+        expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000) // 6 saat geçerli
       };
       
       console.log('placeBid - Eklenen yeni teklif:', newBid);

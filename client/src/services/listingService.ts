@@ -21,14 +21,20 @@ export const getActiveListings = async (): Promise<Listing[]> => {
 };
 
 // İlan detayı getir
-export const getListingById = async (id: string): Promise<Listing> => {
+export const getListingById = async (id: string, includeFullDetails: boolean = false): Promise<Listing> => {
   try {
     if (!id) {
       throw new Error('Geçersiz ilan ID');
     }
     
-    console.log(`İlan detayı getiriliyor, ID: ${id}`);
-    const response = await api.get(`/listings/${id}`);
+    console.log(`İlan detayı getiriliyor, ID: ${id}, Tam detaylar: ${includeFullDetails}`);
+    
+    // Tam detaylar isteniyorsa URL'e parametre ekle
+    const url = includeFullDetails 
+      ? `/listings/${id}?fullDetails=true` 
+      : `/listings/${id}`;
+      
+    const response = await api.get(url);
     
     // Yanıtı kontrol et
     if (!response || !response.data) {
@@ -67,17 +73,70 @@ export const getListingById = async (id: string): Promise<Listing> => {
           processedBid.amount = 0;
         }
         
-        // Kullanıcı bilgisini normalize et
-        if (!processedBid.user) {
+        // Kullanıcı bilgilerini normalize et
+        if (!processedBid.user && !processedBid.bidder) {
           processedBid.user = "Bilinmeyen Kullanıcı";
-        } else if (typeof processedBid.user === 'object') {
-          // Kullanıcı nesnesi ama username yok
-          if (!processedBid.user.username) {
-            processedBid.user.username = "İsimsiz Kullanıcı";
+        } else {
+          // User ve bidder alanları arasında bilgileri senkronize edelim
+          // Detaylı kullanıcı bilgilerini elde edelim
+          if (typeof processedBid.user === 'object' && processedBid.user) {
+            // Kullanıcı objesini daha ayrıntılı logla
+            console.log(`Bid ID ${processedBid._id} için user bilgileri:`, processedBid.user);
+            
+            // Eğer bidder alanı yoksa ve user nesnesi varsa, user'ı bidder'a kopyala
+            if (!processedBid.bidder) {
+              processedBid.bidder = { ...processedBid.user };
+            } 
+            // Eğer her ikisi de varsa, eksik alanları birbirlerinden tamamla
+            else if (typeof processedBid.bidder === 'object') {
+              // bidder'da olmayan user bilgilerini ekle
+              Object.keys(processedBid.user).forEach(key => {
+                if (processedBid.bidder[key] === undefined || processedBid.bidder[key] === null) {
+                  processedBid.bidder[key] = processedBid.user[key];
+                }
+              });
+              
+              // user'da olmayan bidder bilgilerini ekle
+              Object.keys(processedBid.bidder).forEach(key => {
+                if (processedBid.user[key] === undefined || processedBid.user[key] === null) {
+                  processedBid.user[key] = processedBid.bidder[key];
+                }
+              });
+              
+              // companyInfo alanını özel olarak işle
+              if (processedBid.user.companyInfo || processedBid.bidder.companyInfo) {
+                processedBid.user.companyInfo = processedBid.user.companyInfo || {};
+                processedBid.bidder.companyInfo = processedBid.bidder.companyInfo || {};
+                
+                // Her iki companyInfo'yu birleştir
+                Object.keys({ ...processedBid.user.companyInfo, ...processedBid.bidder.companyInfo }).forEach(key => {
+                  processedBid.user.companyInfo[key] = processedBid.user.companyInfo[key] || processedBid.bidder.companyInfo[key];
+                  processedBid.bidder.companyInfo[key] = processedBid.bidder.companyInfo[key] || processedBid.user.companyInfo[key];
+                });
+              }
+            }
+            
+            // Tüm kullanıcılar için isApproved alanı varsayılan true olsun (çünkü onaylanmamış kullanıcılar teklif veremez)
+            processedBid.user.isApproved = true;
+            if (typeof processedBid.bidder === 'object') {
+              processedBid.bidder.isApproved = true;
+            }
           }
-        } else if (typeof processedBid.user === 'string' && processedBid.user.length < 3) {
-          // Çok kısa kullanıcı ID'si
-          processedBid.user = "Kullanıcı-" + processedBid.user;
+          // Eğer bidder nesnesi var ama user yoksa veya string ise
+          else if (typeof processedBid.bidder === 'object' && processedBid.bidder) {
+            console.log(`Bid ID ${processedBid._id} için bidder bilgileri:`, processedBid.bidder);
+            
+            // Eğer user alanı string veya yoksa, bidder'ı user'a kopyala
+            if (typeof processedBid.user !== 'object' || !processedBid.user) {
+              processedBid.user = { ...processedBid.bidder };
+            }
+            
+            // Tüm kullanıcılar için isApproved alanı varsayılan true olsun
+            processedBid.bidder.isApproved = true;
+            if (typeof processedBid.user === 'object') {
+              processedBid.user.isApproved = true;
+            }
+          }
         }
         
         // Timestamp kontrolü
@@ -206,4 +265,24 @@ export const placeBid = async (id: string, amount: number): Promise<Listing> => 
 export const completeListing = async (id: string, accept: boolean): Promise<Listing> => {
   const response = await api.put(`/listings/${id}/complete`, { accept });
   return response.data.listing;
+};
+
+// Teklifi kabul et
+export const acceptBid = async (listingId: string, bidId: string): Promise<Listing> => {
+  try {
+    const response = await api.post(`/listings/${listingId}/bids/${bidId}/accept`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Teklif kabul hatası:', error);
+    
+    // Sunucudan dönen hata mesajını gösterelim
+    if (error.response && error.response.data) {
+      if (error.response.data.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.response.data.error) {
+        throw new Error(error.response.data.error);
+      }
+    }
+    throw new Error('Teklif kabul edilirken bir hata oluştu');
+  }
 }; 
