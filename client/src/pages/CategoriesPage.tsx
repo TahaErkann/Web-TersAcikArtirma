@@ -7,11 +7,21 @@ import {
 } from '@mui/material';
 import { Category } from '../types';
 import { getAllCategories } from '../services/categoryService';
+import AnimatedComponents from '../components/AnimatedComponents';
+
+const { AnimateOnScroll, AnimatedCard } = AnimatedComponents;
 
 // Kategori simge URL'leri
 const categoryIcons: Record<string, string> = {
-  'Hırdavat/Nalbur': 'https://cdn-icons-png.flaticon.com/512/2947/2947656.png',
   'Elektrik': 'https://cdn-icons-png.flaticon.com/512/2947/2947969.png',
+  'Hırdavat': 'https://cdn-icons-png.flaticon.com/512/2947/2947656.png',
+  'Nalburiye': 'https://cdn-icons-png.flaticon.com/512/1791/1791961.png',
+  'Yedek Parça': 'https://cdn-icons-png.flaticon.com/512/3774/3774278.png',
+  'İnşaat': 'https://cdn-icons-png.flaticon.com/512/1669/1669341.png',
+  'Temizlik': 'https://cdn-icons-png.flaticon.com/512/995/995053.png',
+  
+  // Eski ve alternatif kategori isimleri
+  'Hırdavat/Nalbur': 'https://cdn-icons-png.flaticon.com/512/2947/2947656.png',
   'Oto Parça': 'https://cdn-icons-png.flaticon.com/512/3774/3774278.png',
   'Ahşap': 'https://cdn-icons-png.flaticon.com/512/2537/2537535.png',
   'Boya': 'https://cdn-icons-png.flaticon.com/512/1648/1648768.png',
@@ -87,52 +97,54 @@ const CategoriesPage: React.FC = () => {
       <Box sx={{ display: 'flex', flexWrap: 'wrap', margin: -2 }}>
         {categories.map((category) => (
           <Box key={category._id} sx={{ width: { xs: '100%', sm: '50%', md: '33.33%' }, padding: 2 }}>
-            <CardActionArea onClick={() => handleCategoryClick(category._id)}>
-              <Card
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: 3,
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-                  '&:hover': {
-                    transform: 'translateY(-5px)',
-                    boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
-                    backgroundColor: alpha(theme.palette.primary.main, 0.04)
-                  },
-                }}
-              >
-                <Box sx={{ 
-                  p: 3, 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  alignItems: 'center',
-                  backgroundColor: alpha(theme.palette.primary.light, 0.1),
-                }}>
-                  <CardMedia
-                    component="img"
-                    sx={{ 
-                      width: 80, 
-                      height: 80, 
-                      objectFit: 'contain',
-                    }}
-                    image={categoryIcons[category.name] || 'https://cdn-icons-png.flaticon.com/512/1178/1178479.png'}
-                    alt={category.name}
-                  />
-                </Box>
-                <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
-                  <Typography gutterBottom variant="h5" component="h2" fontWeight="bold">
-                    {category.name}
-                  </Typography>
-                  {category.description && (
-                    <Typography variant="body2" color="text.secondary">
-                      {category.description}
+            <AnimateOnScroll variant="scale" delay={0.1}>
+              <CardActionArea onClick={() => handleCategoryClick(category._id)}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: 3,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-5px)',
+                      boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
+                      backgroundColor: alpha(theme.palette.primary.main, 0.04)
+                    },
+                  }}
+                >
+                  <Box sx={{ 
+                    p: 3, 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    backgroundColor: alpha(theme.palette.primary.light, 0.1),
+                  }}>
+                    <CardMedia
+                      component="img"
+                      sx={{ 
+                        width: 80, 
+                        height: 80, 
+                        objectFit: 'contain',
+                      }}
+                      image={categoryIcons[category.name] || 'https://cdn-icons-png.flaticon.com/512/1178/1178479.png'}
+                      alt={category.name}
+                    />
+                  </Box>
+                  <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
+                    <Typography gutterBottom variant="h5" component="h2" fontWeight="bold">
+                      {category.name}
                     </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </CardActionArea>
+                    {category.description && (
+                      <Typography variant="body2" color="text.secondary">
+                        {category.description}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </CardActionArea>
+            </AnimateOnScroll>
           </Box>
         ))}
       </Box>

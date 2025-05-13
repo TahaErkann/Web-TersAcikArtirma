@@ -38,6 +38,9 @@ import InfoIcon from '@mui/icons-material/Info';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import BusinessIcon from '@mui/icons-material/Business';
+import AnimatedComponents from '../components/AnimatedComponents';
+
+const { AnimateOnScroll, AnimatedCard, AnimatedButton } = AnimatedComponents;
 
 // MUI Grid ile ilgili tip hatalarını aşmak için bir wrapper component oluşturuyoruz
 const Grid = (props: any) => <MuiGrid {...props} />;

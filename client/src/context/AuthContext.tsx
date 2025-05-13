@@ -1,4 +1,4 @@
-import React, { createContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useReducer, useEffect, ReactNode, useState } from 'react';
 import { AuthContextType, AuthState, User, LOCAL_STORAGE_KEYS } from '../types';
 import { isTokenValid, getCurrentUser, login as loginService, register as registerService } from '../services/authService';
 
@@ -15,7 +15,8 @@ export const AuthContext = createContext<AuthContextType>({
   login: async () => ({ success: false }),
   register: async () => ({ success: false }),
   logout: () => {},
-  updateUser: () => {}
+  updateUser: () => {},
+  token: null
 });
 
 // Reducer Aksiyonları
@@ -72,24 +73,28 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [token, setToken] = useState<string | null>(localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN));
 
   useEffect(() => {
     const loadUser = async () => {
-      const token = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
+      const storedToken = localStorage.getItem(LOCAL_STORAGE_KEYS.TOKEN);
+      setToken(storedToken);
       
-      if (token && isTokenValid(token)) {
+      if (storedToken && isTokenValid(storedToken)) {
         try {
           const user = await getCurrentUser();
           dispatch({ type: 'LOGIN_SUCCESS', payload: user });
         } catch (error) {
           localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
           localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+          setToken(null);
           dispatch({ type: 'LOGIN_FAILURE', payload: 'Oturum süresi doldu. Lütfen tekrar giriş yapın.' });
         }
       } else {
-        if (token) {
+        if (storedToken) {
           localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
           localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+          setToken(null);
         }
         dispatch({ type: 'SET_LOADING', payload: false });
       }
@@ -102,11 +107,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const { token, user } = await loginService({ email, password });
+      const { token: newToken, user } = await loginService({ email, password });
       
-      localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, token);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, newToken);
       localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(user));
       
+      setToken(newToken);
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
       return { success: true };
     } catch (error: any) {
@@ -130,11 +136,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (name: string, email: string, password: string) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const { token, user } = await registerService({ name, email, password });
+      const { token: newToken, user } = await registerService({ name, email, password });
       
-      localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, token);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.TOKEN, newToken);
       localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(user));
       
+      setToken(newToken);
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
       return { success: true };
     } catch (error: any) {
@@ -158,6 +165,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem(LOCAL_STORAGE_KEYS.TOKEN);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.USER);
+    setToken(null);
     dispatch({ type: 'LOGOUT' });
   };
 
@@ -173,6 +181,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user: state.user,
         loading: state.loading,
         error: state.error,
+        token,
         login,
         register,
         logout,

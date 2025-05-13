@@ -14,69 +14,93 @@ export const useSocket = () => {
 };
 
 export const SocketProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState<boolean>(false);
 
   useEffect(() => {
-    // Bağlantıyı kur
+    let socketInstance: Socket | null = null;
+    
     const setupSocket = () => {
-      const socketInstance = io(process.env.REACT_APP_API_URL || 'http://localhost:5001', {
-        transports: ['websocket', 'polling'],
-      });
+      // API URL'i ortam değişkeninden veya varsayılan değerden al
+      const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      console.log('Socket.io bağlantısı başlatılıyor:', SOCKET_URL);
+      
+      try {
+        // Socket.io bağlantısını oluştur
+        socketInstance = io(SOCKET_URL, {
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 5000,
+          auth: {
+            token: token
+          }
+        });
 
-      socketInstance.on('connect', () => {
-        console.log('Socket.io bağlantısı kuruldu');
-        setConnected(true);
-      });
+        // Bağlantı durumunu dinle
+        socketInstance.on('connect', () => {
+          console.log('Socket.io bağlantısı kuruldu');
+          setConnected(true);
+        });
 
-      socketInstance.on('disconnect', () => {
-        console.log('Socket.io bağlantısı kesildi');
+        socketInstance.on('disconnect', (reason) => {
+          console.log(`Socket.io bağlantısı kesildi: ${reason}`);
+          setConnected(false);
+        });
+
+        socketInstance.on('connect_error', (error) => {
+          console.error('Socket.io bağlantı hatası:', error);
+          setConnected(false);
+        });
+
+        setSocket(socketInstance);
+        return socketInstance;
+      } catch (error) {
+        console.error('Socket.io başlatma hatası:', error);
         setConnected(false);
-      });
-
-      socketInstance.on('connect_error', (error) => {
-        console.error('Socket.io bağlantı hatası:', error);
-        setConnected(false);
-      });
-
-      setSocket(socketInstance);
-
-      return socketInstance;
+        return null;
+      }
     };
 
-    // Socket bağlantısını kur
-    let socketInstance: Socket | null = null;
-    if (user) {
+    // Kullanıcı ve token varsa bağlantı kur
+    if (user && token) {
       socketInstance = setupSocket();
     }
 
-    // Temizleme
+    // Temizleme işlevi
     return () => {
       if (socketInstance) {
+        console.log('Socket.io bağlantısı kapatılıyor');
         socketInstance.disconnect();
+        setSocket(null);
+        setConnected(false);
       }
     };
-  }, [user]);
+  }, [user, token]);
 
-  // Dinleyici eklemek için yardımcı fonksiyon
+  // Olay dinleyicisi ekle
   const on = (event: string, callback: (...args: any[]) => void) => {
     if (socket) {
       socket.on(event, callback);
+    } else {
+      console.warn(`Socket bağlantısı olmadan "${event}" olayı dinlenemedi.`);
     }
   };
 
-  // Dinleyici kaldırmak için yardımcı fonksiyon
+  // Olay dinleyicisi kaldır
   const off = (event: string, callback: (...args: any[]) => void) => {
     if (socket) {
       socket.off(event, callback);
     }
   };
 
-  // Event göndermek için yardımcı fonksiyon
+  // Olay gönder
   const emit = (event: string, data: any) => {
-    if (socket) {
+    if (socket && connected) {
       socket.emit(event, data);
+    } else {
+      console.warn(`Socket bağlantısı olmadan "${event}" olayı gönderilemedi.`);
     }
   };
 

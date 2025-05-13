@@ -27,6 +27,9 @@ import { tr } from 'date-fns/locale';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { Category } from '../types';
+import AnimatedComponents from '../components/AnimatedComponents';
+
+const { AnimateOnScroll, AnimatedCard, AnimatedButton } = AnimatedComponents;
 
 // MUI Grid ile ilgili tip hatalarını aşmak için bir wrapper component oluşturuyoruz
 const Grid = (props: any) => <MuiGrid {...props} />;

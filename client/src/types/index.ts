@@ -89,6 +89,7 @@ export interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
+  token?: string | null;
   login: (email: string, password: string) => Promise<AuthResult>;
   register: (username: string, email: string, password: string) => Promise<AuthResult>;
   logout: () => void;

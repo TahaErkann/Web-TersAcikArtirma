@@ -24,9 +24,9 @@ import ListingsPage from './pages/ListingsPage';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#4F46E5', // İndigo tonu
+      main: '#6366F1', // Modern indigo tonu
       light: '#818CF8',
-      dark: '#3730A3',
+      dark: '#4F46E5',
       contrastText: '#ffffff',
     },
     secondary: {
@@ -57,18 +57,22 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Plus Jakarta Sans", "Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
-      fontWeight: 700,
+      fontWeight: 800,
+      letterSpacing: '-0.025em',
     },
     h2: {
       fontWeight: 700,
+      letterSpacing: '-0.025em',
     },
     h3: {
-      fontWeight: 600,
+      fontWeight: 700,
+      letterSpacing: '-0.0125em',
     },
     h4: {
       fontWeight: 600,
+      letterSpacing: '-0.0125em',
     },
     h5: {
       fontWeight: 600,
@@ -82,44 +86,138 @@ const theme = createTheme({
     },
   },
   shape: {
-    borderRadius: 8,
+    borderRadius: 12,
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: `
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        :root {
+          --card-shadow: 0px 10px 20px rgba(100, 100, 111, 0.1);
+          --transition-speed: 0.3s;
+        }
+        
+        * {
+          box-sizing: border-box;
+        }
+        
+        .animate-on-scroll {
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        
+        .animate-on-scroll.is-visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      `,
+    },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          padding: '10px 16px',
+          borderRadius: 10,
+          padding: '10px 20px',
           boxShadow: 'none',
+          transition: 'all 0.3s ease',
+          position: 'relative',
+          overflow: 'hidden',
           '&:hover': {
-            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+            transform: 'translateY(-2px)',
+            boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.1)',
+          },
+          '&:after': {
+            content: '""',
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            top: 0,
+            left: 0,
+            pointerEvents: 'none',
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 10%)',
+            transform: 'scale(10, 10)',
+            opacity: 0,
+            transition: 'transform 0.5s, opacity 0.8s',
+          },
+          '&:active::after': {
+            transform: 'scale(0, 0)',
+            opacity: 0.3,
+            transition: '0s',
           },
         },
         containedPrimary: {
           background: 'linear-gradient(90deg, #4F46E5 0%, #6366F1 100%)',
+        },
+        containedSecondary: {
+          background: 'linear-gradient(90deg, #E11D48 0%, #F43F5E 100%)',
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.05)',
+          borderRadius: 16,
+          boxShadow: 'var(--card-shadow)',
           overflow: 'hidden',
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: '0px 15px 25px rgba(100, 100, 111, 0.2)',
+          },
         },
       },
     },
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 16,
+          transition: 'all 0.3s ease',
         },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
+          borderRadius: 10,
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
+          },
+          '&.Mui-focused': {
+            boxShadow: '0px 4px 8px rgba(99, 102, 241, 0.1)',
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
           borderRadius: 8,
+          fontWeight: 500,
+        },
+      },
+    },
+    MuiAvatar: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
+        },
+      },
+    },
+    MuiListItem: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          transition: 'background-color 0.2s ease',
+        },
+      },
+    },
+    MuiLinearProgress: {
+      styleOverrides: {
+        root: {
+          borderRadius: 10,
+          height: 8,
         },
       },
     },
