@@ -304,7 +304,7 @@ const HomePage: React.FC = () => {
                   color="inherit" 
                   size="large"
                   component={RouterLink}
-                  to="/register"
+                  to="/login"
                 >
                   Üye Ol
                 </Button>
@@ -398,7 +398,7 @@ const HomePage: React.FC = () => {
               color="primary" 
               size="large"
               component={RouterLink}
-              to="/register"
+              to="/login"
               sx={{ mt: 2 }}
             >
               Ücretsiz Üye Olun
