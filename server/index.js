@@ -57,6 +57,9 @@ const io = socketIo(server, {
   }
 });
 
+// İlan süresi kontrol cron
+const { checkListingExpiry } = require('./cron/listingExpiryChecker');
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -115,6 +118,7 @@ process.on('SIGINT', async () => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/listings', require('./routes/listings'));
 app.use('/api/categories', require('./routes/categories'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Sağlık kontrolü endpoint'i
 app.get('/health-check', (req, res) => {
@@ -179,6 +183,18 @@ io.on('connection', (socket) => {
 
 // Global SocketIO nesnesi
 global.io = io;
+
+// Her dakika ilan sürelerini kontrol et
+setInterval(async () => {
+  try {
+    const result = await checkListingExpiry();
+    if (result.updated > 0) {
+      console.log(`İlan süresi kontrolü: ${result.checked} kontrol edildi, ${result.updated} güncellendi`);
+    }
+  } catch (error) {
+    console.error('İlan süresi kontrol hatası:', error);
+  }
+}, 60000); // 60 saniye
 
 // Üretim ortamında statik dosyaları sunma
 if (process.env.NODE_ENV === 'production') {

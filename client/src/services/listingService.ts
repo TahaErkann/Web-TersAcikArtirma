@@ -6,12 +6,43 @@ export const getAllListings = async (category?: string): Promise<Listing[]> => {
   const params = new URLSearchParams();
   
   if (category) {
+    console.log(`getAllListings API çağrısı yapılıyor, kategori: ${category}`);
     params.append('category', category);
+  } else {
+    console.log('getAllListings API çağrısı yapılıyor, kategori filtresi olmadan');
   }
   
   const query = params.toString() ? `?${params.toString()}` : '';
-  const response = await api.get(`/listings${query}`);
-  return response.data;
+  console.log(`API istek URL: /listings${query}`);
+  
+  try {
+    const response = await api.get(`/listings${query}`);
+    console.log(`API yanıtı: ${response.data.length} ilan`);
+    
+    // İlanların kategori bilgilerini kontrol et
+    if (response.data.length > 0 && category) {
+      const matchingCategoryItems = response.data.filter(item => {
+        if (typeof item.category === 'object') {
+          return item.category && item.category._id === category;
+        } else {
+          return item.category === category;
+        }
+      });
+      
+      console.log(`Kategori ${category} ile eşleşen ilan sayısı: ${matchingCategoryItems.length}`);
+      if (matchingCategoryItems.length === 0) {
+        console.warn('Hiçbir ilan seçilen kategori ile eşleşmiyor!');
+        if (response.data.length > 0) {
+          console.log('İlk ilan örneği:', response.data[0]);
+        }
+      }
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('API isteği başarısız:', error);
+    throw error;
+  }
 };
 
 // Aktif ilanları getir

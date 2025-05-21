@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import Navbar from './components/Navbar';
 import { SocketProvider } from './context/SocketContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Sayfaları yükle
 import HomePage from './pages/HomePage';
@@ -24,19 +25,19 @@ import ListingsPage from './pages/ListingsPage';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#6366F1', // Modern indigo tonu
-      light: '#818CF8',
-      dark: '#4F46E5',
+      main: '#1A237E', // Koyu lacivert (deep navy blue)
+      light: '#534BAE',
+      dark: '#0D1259',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#F43F5E', // Modern pembe
-      light: '#FB7185',
-      dark: '#BE123C',
+      main: '#4A148C', // Patlıcan moru (aubergine)
+      light: '#7C43BD',
+      dark: '#2C0B52',
       contrastText: '#ffffff',
     },
     background: {
-      default: '#F9FAFB',
+      default: '#F5F5F8', // Biraz daha koyu arkaplan
       paper: '#ffffff',
     },
     text: {
@@ -360,7 +361,9 @@ const App: React.FC = () => {
         <CssBaseline />
         <AuthProvider>
           <SocketProvider>
-            <AppContent />
+            <NotificationProvider>
+              <AppContent />
+            </NotificationProvider>
           </SocketProvider>
         </AuthProvider>
       </ThemeProvider>

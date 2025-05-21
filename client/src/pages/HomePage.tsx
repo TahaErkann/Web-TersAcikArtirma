@@ -272,7 +272,7 @@ const HomePage: React.FC = () => {
       {/* Hero Section */}
       <Box 
         sx={{ 
-          bgcolor: 'primary.light', 
+          bgcolor: 'primary.main', 
           color: 'common.white',
           py: 10,
           borderRadius: { md: '0 0 50px 50px' }
@@ -286,6 +286,11 @@ const HomePage: React.FC = () => {
               </Typography>
               <Typography variant="h5" paragraph>
                 İşletmelerin tedarik süreçlerinde zaman ve maliyet tasarrufu sağlayan yenilikçi çözüm
+              </Typography>
+              <Typography variant="body1" paragraph sx={{ backgroundColor: alpha('#fff', 0.1), p: 2, borderRadius: 2, mb: 3 }}>
+                <strong>Ters Açık Artırma</strong> sisteminde, tedarikçiler en düşük fiyat teklifini vererek rekabet eder. Böylece 
+                işletmeler en uygun maliyetle tedarik yapabilir. Normal açık artırmalarda fiyat sürekli 
+                yükselirken, ters açık artırmada fiyatlar düşer.
               </Typography>
               <Box sx={{ mt: 4 }}>
                 <Button 
@@ -313,8 +318,8 @@ const HomePage: React.FC = () => {
             <Grid item xs={12} md={6}>
               <Box 
                 component="img"
-                src="/images/hero-image.png"
-                alt="Ters Açık Artırma"
+                src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=800"
+                alt="İş Anlaşması"
                 sx={{ 
                   width: '100%',
                   maxWidth: 500,
@@ -330,14 +335,94 @@ const HomePage: React.FC = () => {
         </Container>
       </Box>
       
+      {/* Platform İstatistikleri */}
+      <Container maxWidth="lg" sx={{ my: 6, py: 2 }}>
+        <Grid container spacing={3} justifyContent="center">
+          <Grid item xs={12} sm={4}>
+            <Paper elevation={0} sx={{ p: 3, textAlign: 'center', bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+              <Typography variant="h4" color="primary.main" fontWeight="bold">{activeListings}</Typography>
+              <Typography variant="subtitle1">Aktif İlan</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Paper elevation={0} sx={{ p: 3, textAlign: 'center', bgcolor: alpha(theme.palette.success.main, 0.05) }}>
+              <Typography variant="h4" color="success.main" fontWeight="bold">{categories.length}</Typography>
+              <Typography variant="subtitle1">Farklı Kategori</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Paper elevation={0} sx={{ p: 3, textAlign: 'center', bgcolor: alpha(theme.palette.secondary.main, 0.05) }}>
+              <Typography variant="h4" color="secondary.main" fontWeight="bold">%25</Typography>
+              <Typography variant="subtitle1">Ortalama Tasarruf</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Container>
+      
+      {/* Artırma Süreci İllüstrasyonu */}
+      <Box sx={{ bgcolor: '#f5f5f5', py: 6 }}>
+        <Container maxWidth="lg">
+          <Typography variant="h4" component="h2" fontWeight="bold" textAlign="center" gutterBottom>
+            Ters Açık Artırma Nasıl İşler?
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary" textAlign="center" sx={{ mb: 5, maxWidth: 700, mx: 'auto' }}>
+            Geleneksel açık artırmaların aksine, ters açık artırmada teklifler giderek azalır ve 
+            en düşük teklifi veren kazanır.
+          </Typography>
+          
+          <Grid container spacing={4} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Box 
+                component="img"
+                src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800"
+                alt="Grafik gösterimi"
+                sx={{
+                  width: '100%',
+                  borderRadius: 2,
+                  boxShadow: 3
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Stack spacing={3}>
+                <Paper elevation={1} sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>1</Avatar>
+                  <Typography>
+                    <strong>İlan Yayınlama:</strong> Alıcı, ihtiyaç duyduğu ürün/hizmet için bir başlangıç fiyatı belirleyerek ilan oluşturur.
+                  </Typography>
+                </Paper>
+                <Paper elevation={1} sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>2</Avatar>
+                  <Typography>
+                    <strong>Teklif Verme:</strong> Tedarikçiler belirlenen süre içinde birbirlerinin tekliflerini görerek daha düşük teklifler sunar.
+                  </Typography>
+                </Paper>
+                <Paper elevation={1} sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>3</Avatar>
+                  <Typography>
+                    <strong>Kazanan Belirleme:</strong> Süre sonunda en düşük teklifi veren tedarikçi kazanır ve alıcı ile iletişime geçer.
+                  </Typography>
+                </Paper>
+                <Paper elevation={1} sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>4</Avatar>
+                  <Typography>
+                    <strong>İşlem Tamamlama:</strong> Alıcı ve satıcı anlaşmayı tamamlar ve platform üzerinden işlem kaydedilir.
+                  </Typography>
+                </Paper>
+              </Stack>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+      
       {/* Özellikler Bölümü */}
       <Container maxWidth="lg" sx={{ my: 8 }}>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Typography variant="h3" component="h2" fontWeight="bold" gutterBottom>
-            Nasıl Çalışır?
+            Platformun Avantajları
           </Typography>
           <Typography variant="subtitle1" color="text.secondary" sx={{ maxWidth: 700, mx: 'auto' }}>
-            Platform, işletmeler arasında ters açık artırma sistemi ile en uygun fiyatlı tedarikçileri bulmanızı sağlar.
+            İşletmenizin tedarik süreçlerini optimize ederek zaman ve maliyet tasarrufu sağlayın.
           </Typography>
         </Box>
         
@@ -374,8 +459,68 @@ const HomePage: React.FC = () => {
         </Grid>
       </Container>
       
+      {/* Kimler İçin İdeal */}
+      <Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05), py: 6 }}>
+        <Container maxWidth="lg">
+          <Typography variant="h4" component="h2" fontWeight="bold" textAlign="center" gutterBottom>
+            Kimler İçin İdeal?
+          </Typography>
+          
+          <Grid container spacing={4} sx={{ mt: 2 }}>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', boxShadow: 3 }}>
+                <CardMedia
+                  component="img"
+                  height="200"
+                  image="https://images.unsplash.com/photo-1556157382-97eda2d62296?q=80&w=600"
+                  alt="Tedarikçiler"
+                />
+                <CardContent>
+                  <Typography variant="h5" component="h3" gutterBottom>
+                    Tedarikçiler İçin
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" paragraph>
+                    • Yeni müşterilere ulaşma ve pazar payınızı artırma
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" paragraph>
+                    • Rekabetçi teklif sunarak stok erime hızını artırma
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" paragraph>
+                    • İşletmeler arası güvenli ticaret yapma
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', boxShadow: 3 }}>
+                <CardMedia
+                  component="img"
+                  height="200"
+                  image="https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=600"
+                  alt="Alıcılar"
+                />
+                <CardContent>
+                  <Typography variant="h5" component="h3" gutterBottom>
+                    Alıcılar İçin
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" paragraph>
+                    • Tedarik maliyetlerinde %25'e varan tasarruf
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" paragraph>
+                    • Geniş tedarikçi ağı ile daha fazla seçenek
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" paragraph>
+                    • Hızlı ve şeffaf tedarik süreci yönetimi
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+      
       {/* CTA Bölümü */}
-      <Box sx={{ bgcolor: 'secondary.light', py: 8 }}>
+      <Box sx={{ bgcolor: 'primary.dark', py: 8 }}>
         <Container maxWidth="md">
           <Paper 
             elevation={4} 

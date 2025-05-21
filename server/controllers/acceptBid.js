@@ -172,6 +172,34 @@ const acceptBid = async (req, res) => {
       });
     }
     
+    // Teklif sahibine bildirim gönder
+    try {
+      // Teklif sahibinin ID'sini bul
+      const bidderId = acceptedBid?.bidder?._id || acceptedBid?.user?._id;
+      
+      if (bidderId) {
+        // Bildirim servisi'ni yükle
+        const notificationService = require('../services/notificationService');
+        
+        // Bildirim oluştur
+        await notificationService.createNotification(
+          bidderId,
+          'winner',
+          'Teklifiniz Kabul Edildi!',
+          `"${updatedListing.title}" ilanı için verdiğiniz ${acceptedBid.amount || acceptedBid.price} TL tutarındaki teklif kabul edildi.`,
+          updatedListing._id,
+          acceptedBid._id
+        );
+        
+        console.log(`Teklif sahibine (${bidderId}) bildirim gönderildi`);
+      } else {
+        console.log('Teklif sahibi ID bulunamadı, bildirim gönderilemedi');
+      }
+    } catch (notificationError) {
+      console.error('Bildirim gönderme hatası:', notificationError);
+      // Bildirim gönderme hatası ana işlemi etkilememeli
+    }
+    
     console.log("Teklif kabul işlemi başarılı");
     res.json(updatedListing);
   } catch (error) {

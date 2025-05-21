@@ -663,14 +663,14 @@ const ListingDetailPage: React.FC = () => {
                   <Card key={index} variant="outlined" sx={{ mb: 2 }}>
                     <CardContent>
                       <Typography variant="h6">{item.name || 'İsimsiz Ürün'}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Miktar: {item.quantity || 1} {item.unit || 'Adet'}
-                      </Typography>
                       {item.description && (
                         <Typography variant="body2" sx={{ mt: 1 }}>
                           {item.description}
                         </Typography>
                       )}
+                      <Typography variant="body2" color="text.secondary">
+                        Miktar: {item.quantity || 1} {item.unit || 'Adet'}
+                      </Typography>
                     </CardContent>
                   </Card>
                 ))}

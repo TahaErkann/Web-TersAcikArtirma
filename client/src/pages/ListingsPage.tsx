@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { useSocket } from '../context/SocketContext';
+import React, { useState, useEffect, useContext } from 'react';import { Link as RouterLink, useLocation } from 'react-router-dom';import { useSocket } from '../context/SocketContext';import { AuthContext } from '../context/AuthContext';
 import { getAllListings, getActiveListings } from '../services/listingService';
-import { Listing } from '../types';
+import { getAllCategories } from '../services/categoryService';
+import { Listing, Category } from '../types';
 import {
   Container,
   Typography,
@@ -16,23 +15,152 @@ import {
   Tab,
   CircularProgress,
   Alert,
-  Button
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import SortIcon from '@mui/icons-material/Sort';
 
 // URL'den query parametrelerini almak için kullanılan yardımcı fonksiyon
 function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
+// Kategori resimlerini döndüren yardımcı fonksiyon
+const getCategoryImage = (categoryName: string): string => {
+  // Kategori adına göre uygun resimleri belirle (örnek resimler)
+  const categoryImages: Record<string, string> = {
+    // Elektronik ve Teknoloji
+    "Elektronik": "https://images.unsplash.com/photo-1498049794561-7780e7231661?q=80&w=500",
+    "Teknoloji": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=500",
+    "Elektrik": "https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?q=80&w=500",
+    "Bilgisayar": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=500",
+    
+    // Ev ve Mobilya
+    "Mobilya": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=500",
+    "Ev Eşyaları": "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?q=80&w=500",
+    "Beyaz Eşya": "https://images.unsplash.com/photo-1584971217142-d63151e44256?q=80&w=500",
+    
+    // Giyim ve Tekstil
+    "Giyim": "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?q=80&w=500",
+    "Tekstil": "https://images.unsplash.com/photo-1620799140188-3b2a02fd9a77?q=80&w=500",
+    "Ayakkabı": "https://images.unsplash.com/photo-1595341888016-a392ef81b7de?q=80&w=500",
+    
+    // Yiyecek ve İçecek
+    "Gıda": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=500",
+    "İçecek": "https://images.unsplash.com/photo-1544145945-f90425340c7e?q=80&w=500",
+    "Tarım": "https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?q=80&w=500",
+    
+    // İnşaat ve Yapı Malzemeleri
+    "İnşaat": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=500",
+    "İnşaat Malzemeleri": "https://images.unsplash.com/photo-1621155346337-1d19495a11ab?q=80&w=500",
+    "Yapı Malzemeleri": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=500",
+    
+    // Ofis ve Kırtasiye
+    "Kırtasiye": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=500",
+    "Ofis Malzemeleri": "https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?q=80&w=500",
+    "Kitap": "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=500",
+    
+    // Otomotiv
+    "Otomotiv": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=500",
+    "Oto Yedek Parça": "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=500",
+    "Araç": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=500",
+    
+    // Spor ve Sağlık
+    "Spor": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=500",
+    "Fitness": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=500",
+    "Medikal": "https://images.unsplash.com/photo-1631815588090-d4bfec5b7e5c?q=80&w=500",
+    "Sağlık": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=500",
+    "Eczane": "https://images.unsplash.com/photo-1563453392212-326f5e854473?q=80&w=500",
+    "Kozmetik": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=500",
+    "Bakım Ürünleri": "https://images.unsplash.com/photo-1590439471364-192aa70c0b53?q=80&w=500",
+    
+    // Diğer Kategoriler
+    "Hırdavat/Nalbur": "https://images.unsplash.com/photo-1562516710-6a880c0c4e5f?q=80&w=500",
+    "Bahçe": "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?q=80&w=500",
+    "Kimyasal": "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?q=80&w=500",
+    "Temizlik": "https://images.unsplash.com/photo-1583947215259-38e31be8751f?q=80&w=500",
+    "Ambalaj": "https://images.unsplash.com/photo-1607344645866-009c320c5ab8?q=80&w=500",
+    "Endüstriyel": "https://images.unsplash.com/photo-1537427294423-eea2d66b0cc8?q=80&w=500"
+  };
+  
+  // Kategori adı varsa ve resmi tanımlıysa, o resmi döndür
+  if (categoryName && categoryImages[categoryName]) {
+    return categoryImages[categoryName];
+  }
+  
+  // Varsayılan resmi döndür - artık "SALE" yazılı bir resim değil, ticari bir ürün rafı
+  return "https://images.unsplash.com/photo-1607082349566-187342175e2f?q=80&w=500";
+};
+
 export const ListingsPage: React.FC = () => {
   const [listings, setListings] = useState<Listing[]>([]);
+  const [filteredListings, setFilteredListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [tabValue, setTabValue] = useState<number>(0);
   const { on, off } = useSocket();
+  const state = useContext(AuthContext);
   const query = useQuery();
   const categoryId = query.get('category');
+  const [initialized, setInitialized] = useState<boolean>(false);
+  
+  // Filtreleme ve sıralama için state değişkenleri
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>(categoryId || '');
+  const [sortBy, setSortBy] = useState<string>('newest');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // İlanın süresi doldu mu kontrol et (ListingDetailPage'den alındı)
+  const isExpired = (listing: Listing) => {
+    // expiresAt alanı varsa onu kullan (tekliflerden sonra güncellenen son geçerlilik süresi)
+    if (listing.expiresAt) {
+      return new Date(listing.expiresAt) < new Date();
+    }
+    
+    // Yoksa endDate'i kullan (ilk oluşturulduğundaki bitiş tarihi) 
+    if (listing.endDate) {
+      return new Date(listing.endDate) < new Date();
+    }
+    
+    return false;
+  };
+
+  // İlanın aktif olup olmadığını kontrol etme
+  const isListingActive = (listing: Listing): boolean => {
+    // endDate yoksa varsayılan olarak aktif olarak kabul et
+    if (!listing.endDate) return true;
+    
+    // Bitiş tarihi geçmiş mi kontrol et
+    const now = new Date().getTime();
+    const endTime = new Date(listing.endDate).getTime();
+    
+    return endTime > now;
+  };
+
+  // İlanların durumlarını manuel olarak kontrol eden fonksiyon ekliyorum
+  const updateListingStatuses = (listings: Listing[]): Listing[] => {
+    const currentTime = new Date().getTime();
+    
+    return listings.map(listing => {
+      // Derin kopya oluştur
+      const updatedListing = JSON.parse(JSON.stringify(listing));
+      
+      // Bitiş tarihi varsa ve geçmişse durumu güncelle
+      if (updatedListing.endDate) {
+        const endTime = new Date(updatedListing.endDate).getTime();
+        if (endTime <= currentTime) {
+          updatedListing.status = 'ended';
+        }
+      }
+      
+      return updatedListing;
+    });
+  };
 
   // Veri yükleme fonksiyonu
   const fetchListings = async () => {
@@ -40,23 +168,50 @@ export const ListingsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Tab değerine göre ilgili ilanları getir
+      // İlanları getir
       let data: Listing[];
-      if (tabValue === 0) {
-        data = await getActiveListings();
-      } else {
-        data = await getAllListings(categoryId || undefined);
-      }
       
-      // Boş veya hatalı alan kontrolü
-      data = data.map(listing => ({
-        ...listing,
-        title: listing.title || 'İsimsiz İlan',
-        currentPrice: listing.currentPrice || 0,
-        startingPrice: listing.startingPrice || 0
-      }));
+      console.log(`Kategori filtreleme için API isteği: Kategori=${selectedCategory}`);
+      
+      // Kategori seçilmişse o kategoriye ait ilanları getir, değilse tüm ilanları getir
+      data = await getAllListings(selectedCategory || undefined);
+      console.log(`${selectedCategory || 'Tüm kategoriler'} için ${data.length} ilan getirildi`);
+      
+      // API'dan dönen kategori verilerinin yapısını kontrol edelim
+      console.log("Kategori bilgisi örnekleri:");
+      data.slice(0, 3).forEach(listing => {
+        console.log("İlan:", listing.title);
+        console.log("Kategori verisi:", listing.category);
+        if (typeof listing.category === 'object') {
+          console.log("Kategori _id:", listing.category._id);
+          console.log("Kategori name:", listing.category.name);
+        } else {
+          console.log("Kategori (string olarak):", listing.category);
+        }
+      });
+      
+      // Şu anki zamanı bir kez hesapla
+      const currentTime = new Date().getTime();
+      
+      // İlanların durumlarını güncelle (bitiş sürelerini kontrol ederek)
+      data = data.map(listing => {
+        // Derin kopya oluştur
+        const updatedListing = JSON.parse(JSON.stringify(listing));
+        
+        // Bitiş tarihini kontrol et ve süresi dolmuşsa güncelle
+        if (isExpired(updatedListing)) {
+          console.log(`Süresi geçmiş ilan güncelleniyor: ${updatedListing.title} (ID: ${updatedListing._id})`);
+          console.log(`Bitiş tarihi: ${updatedListing.endDate}, Şu anki zaman: ${new Date().toISOString()}`);
+          updatedListing.status = 'ended'; // Durum güncelleniyor
+        }
+        
+        return updatedListing;
+      });
+      
+      console.log("İlanların durumları güncellendi:", data.map(l => ({ id: l._id, title: l.title, status: l.status })));
       
       setListings(data);
+      applyFiltersAndSort(data);
       setLoading(false);
     } catch (err) {
       console.error('İlan yükleme hatası:', err);
@@ -65,11 +220,267 @@ export const ListingsPage: React.FC = () => {
     }
   };
 
-  // İlk yükleme
+  // Yükleme ve state başlatma mantığı
   useEffect(() => {
-    fetchListings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabValue, categoryId]);
+    const initPage = async () => {
+      setLoading(true);
+      
+      try {
+        // Kategorileri yükle
+        await loadCategories();
+        
+        // Kategori varsa state'e ekle
+        if (categoryId) {
+          setSelectedCategory(categoryId);
+        }
+        
+        // İlanları yükle
+        fetchListings();
+      } catch (err) {
+        console.error('İlan yükleme hatası:', err);
+        setError('İlanlar yüklenirken bir hata oluştu.');
+        setLoading(false);
+      }
+      
+      setInitialized(true);
+    };
+    
+    initPage();
+  }, [categoryId]);
+
+  // Filtreleme ve sıralama değiştiğinde yeniden uygula
+  useEffect(() => {
+    if (listings.length > 0) {
+      // Durumları güncellenmiş ilanları alıyoruz
+      const updatedListings = updateListingStatuses(listings);
+      applyFiltersAndSort(updatedListings);
+    }
+  }, [sortBy, statusFilter, listings]);
+
+  // İlanları filtreleme ve sıralama fonksiyonu
+  const applyFiltersAndSort = (data: Listing[]) => {
+    let result = [...data];
+    
+    // Eğer veri yoksa boş liste döndür
+    if (result.length === 0) {
+      setFilteredListings([]);
+      return;
+    }
+    
+    console.log(`applyFiltersAndSort başlıyor. Toplam ${result.length} ilan var.`);
+    console.log(`Kategori filtresi: ${selectedCategory || 'Yok'}`);
+    
+    // Kategori filtresi (selectedCategory state'inde saklanan kategori ID'sine göre)
+    if (selectedCategory) {
+      // API'den dönen kategori verisinin yapısını kontrol edelim ve her türlü format için filtreleyelim
+      console.log("Kategori filtresi uygulanıyor:", selectedCategory);
+      
+      const beforeFilter = result.length;
+      
+      // Filtreleme işlemini yapmadan önce ilanların kategori yapısını inceleyelim
+      result.forEach((listing, idx) => {
+        if (listing.category) {
+          console.log(`İlan #${idx} kategorisi:`, listing.category, typeof listing.category);
+        }
+      });
+      
+      result = result.filter(listing => {
+        // Kategorisi olmayan ilanları filtrele
+        if (!listing.category) {
+          console.log(`Kategorisi olmayan ilan filtrelendi:`, listing.title);
+          return false;
+        }
+        
+        // 1. Kategori bir obje ise (category: { _id: '...', name: '...' })
+        if (typeof listing.category === 'object' && listing.category !== null) {
+          const match = listing.category._id === selectedCategory;
+          if (match) {
+            console.log(`Kategori eşleşmesi (obje): ${listing.title} - ${listing.category._id}`);
+          }
+          return match;
+        }
+        // 2. Kategori bir string ise doğrudan ID değerini içerir
+        else if (typeof listing.category === 'string') {
+          const match = listing.category === selectedCategory;
+          if (match) {
+            console.log(`Kategori eşleşmesi (string): ${listing.title} - ${listing.category}`);
+          }
+          return match;
+        }
+        
+        return false;
+      });
+      
+      console.log(`Filtreleme sonrası ilan sayısı: ${result.length} (önceki: ${beforeFilter})`);
+      
+      // Eğer seçilen kategoride hiç ilan yoksa, boş liste göstermeliyiz
+      if (result.length === 0) {
+        console.warn(`${selectedCategory} kategorisinde hiç ilan bulunamadı!`);
+        setFilteredListings([]);
+        return;
+      }
+    }
+    
+    // Durum filtresini uygula
+    if (statusFilter === 'active') {
+      result = result.filter(listing => listing.status === 'active');
+    } else if (statusFilter === 'ended') {
+      result = result.filter(listing => listing.status === 'ended');
+    }
+    
+    // Sıralama uygula
+    switch (sortBy) {
+      case 'priceAsc':
+        result.sort((a, b) => a.currentPrice - b.currentPrice);
+        break;
+      case 'priceDesc':
+        result.sort((a, b) => b.currentPrice - a.currentPrice);
+        break;
+      case 'endDateAsc':
+        result.sort((a, b) => {
+          if (!a.endDate) return 1;
+          if (!b.endDate) return -1;
+          return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+        });
+        break;
+      case 'endDateDesc':
+        result.sort((a, b) => {
+          if (!a.endDate) return 1;
+          if (!b.endDate) return -1;
+          return new Date(b.endDate).getTime() - new Date(a.endDate).getTime();
+        });
+        break;
+      case 'newest':
+        result.sort((a, b) => {
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        break;
+      case 'oldest':
+        result.sort((a, b) => {
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+        break;
+      default:
+        // Varsayılan olarak en yeni ilanları göster
+        result.sort((a, b) => {
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+    }
+    
+    setFilteredListings(result);
+  };
+
+  // Kategori bilgilerini yükleyen yardımcı fonksiyon
+  const loadCategories = async () => {
+    try {
+      console.log('Kategoriler yükleniyor...');
+      const categoriesData = await getAllCategories();
+      console.log(`${categoriesData.length} kategori yüklendi.`);
+      categoriesData.forEach(cat => {
+        console.log(`Kategori: ${cat.name} (${cat._id})`);
+      });
+      setCategories(categoriesData);
+      return categoriesData;
+    } catch (error) {
+      console.error('Kategori yükleme hatası:', error);
+      return [];
+    }
+  };
+
+  // Kategori değiştiğinde
+  const handleCategoryChange = (event: SelectChangeEvent) => {
+    const newCategoryId = event.target.value;
+    console.log(`==========================================`);
+    console.log(`KATEGORİ DEĞİŞTİ: ${newCategoryId ? newCategoryId : 'Tüm Kategoriler'}`);
+    console.log(`==========================================`);
+    
+    // Kategori değiştiğinde önce tüm state'leri sıfırlayalım
+    setLoading(true);
+    setFilteredListings([]);
+    setListings([]);
+    
+    if (newCategoryId) {
+      // Seçilen kategori gerçekten mevcut mu kontrol edelim
+      const selectedCategoryObj = categories.find(cat => cat._id === newCategoryId);
+      if (selectedCategoryObj) {
+        console.log(`Seçilen kategori: ${selectedCategoryObj.name} (${selectedCategoryObj._id})`);
+      } else {
+        console.warn(`DİKKAT: ${newCategoryId} ID'li kategori bulunamadı!`);
+        
+        // Kategoriler yeniden yüklensin
+        loadCategories().then(() => {
+          console.log('Kategoriler yenilendi. Tekrar kontrol ediliyor...');
+          const refreshedCategory = categories.find(cat => cat._id === newCategoryId);
+          if (refreshedCategory) {
+            console.log(`Kategori bulundu: ${refreshedCategory.name}`);
+          } else {
+            console.warn(`Kategori hala bulunamadı: ${newCategoryId}`);
+          }
+        });
+      }
+    } else {
+      console.log("Tüm kategoriler seçildi");
+    }
+    
+    // Kategori ID'sini güncelle
+    setSelectedCategory(newCategoryId);
+    
+    // Kategori değiştiğinde verileri doğrudan yükle
+    const loadData = async () => {
+      try {
+        let data: Listing[];
+        
+        // Yeni kategori ID'si ile ilanları getir
+        data = await getAllListings(newCategoryId || undefined);
+        
+        console.log(`Kategori filtreleme sonrası veri: ${data.length} ilan`);
+        
+        // Hiç ilan yoksa boş liste göster
+        if (data.length === 0) {
+          console.warn('API\'den hiç ilan dönmedi. Filtrelenmiş liste boş.');
+          setListings([]);
+          setFilteredListings([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Durumları güncelle
+        data = data.map(listing => {
+          const updatedListing = JSON.parse(JSON.stringify(listing));
+          if (isExpired(updatedListing)) {
+            updatedListing.status = 'ended';
+          }
+          return updatedListing;
+        });
+        
+        setListings(data);
+        applyFiltersAndSort(data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Kategori değişimi sırasında veri yükleme hatası:', error);
+        setError('İlanlar yüklenirken bir hata oluştu.');
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  };
+
+  // Sıralama değiştiğinde
+  const handleSortChange = (event: SelectChangeEvent) => {
+    setSortBy(event.target.value);
+  };
+
+  // Durum filtresi değiştiğinde
+  const handleStatusFilterChange = (event: SelectChangeEvent) => {
+    setStatusFilter(event.target.value);
+  };
 
   // Socket.io bağlantısı
   useEffect(() => {
@@ -103,9 +514,65 @@ export const ListingsPage: React.FC = () => {
     };
   }, [on, off]);
 
-  // Tab değiştirme
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
+  // Fiyat formatı
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('tr-TR', { 
+      style: 'currency', 
+      currency: 'TRY',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price);
+  };
+
+  // Sayfa yüklendiğinde debug yapalım
+  useEffect(() => {
+    const checkExpiryDates = () => {
+      console.log("Sayfa yüklendi - İlanların durumlarını kontrol ediyorum");
+      // Tüm ilanların durumları güncelleniyor
+      if (listings.length > 0) {
+        const currentTime = Date.now();
+        listings.forEach(listing => {
+          if (listing.endDate) {
+            const endTime = new Date(listing.endDate).getTime();
+            const isExpired = endTime <= currentTime;
+            console.log(`İlan: ${listing.title}, ID: ${listing._id}, Status: ${listing.status}, EndDate: ${listing.endDate}, IsExpired: ${isExpired}`);
+          } else {
+            console.log(`İlan: ${listing.title}, ID: ${listing._id}, Status: ${listing.status}, EndDate: YOK`);
+          }
+        });
+      }
+    };
+    
+    checkExpiryDates();
+  }, [listings]);
+  
+  // İlanların durum etiketini direkt olarak hesaplayan yardımcı fonksiyon
+  const getCardStatusInfo = (listing: Listing): { label: string; color: "success" | "primary" | "error" } => {
+    // Önce süresi dolmuş mu kontrol et (DetailPage ile aynı mantık)
+    if (isExpired(listing)) {
+      return { 
+        label: 'Süresi Dolmuş', 
+        color: 'primary' 
+      };
+    }
+    
+    // Süresi dolmadıysa, durum alanına göre göster
+    if (listing.status === 'active') {
+      return { 
+        label: 'Aktif', 
+        color: 'success' 
+      };
+    } else if (listing.status === 'ended') {
+      return { 
+        label: 'Süresi Dolmuş', 
+        color: 'primary' 
+      };
+    } else {
+      return { 
+        label: 'İptal Edildi', 
+        color: 'error' 
+      };
+    }
   };
 
   // Bitiş tarihine göre kalan süreyi hesaplama
@@ -125,15 +592,67 @@ export const ListingsPage: React.FC = () => {
     return `${hours} saat`;
   };
 
-  // Fiyat formatı
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('tr-TR', { 
-      style: 'currency', 
-      currency: 'TRY',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(price);
-  };
+  // DOM yüklendikten sonra ilan kartlarını manuel olarak düzelteceğiz
+  useEffect(() => {
+    console.log("DOM düzeltme fonksiyonu çalıştı");
+    // İlan kartlarındaki durumları düzenleyen fonksiyon
+    const fixListingStatuses = () => {
+      setTimeout(() => {
+        try {
+          // Tüm ilan kartlarında durum etiketlerini seç
+          const statusChips = document.querySelectorAll('.MuiChip-root');
+          console.log(`${statusChips.length} adet durum etiketi bulundu`);
+          
+          // Her bir etiketi kontrol et
+          statusChips.forEach((chip: any) => {
+            // Sadece ilan kartlarındaki durum etiketlerini hedefle
+            if (chip.style.position === 'absolute' && chip.style.top === '10px' && chip.style.right === '10px') {
+              // Kart üzerinde endDate ve status verilerini ara
+              const cardElement = chip.closest('.MuiCard-root');
+              if (cardElement) {
+                // Karta en yakın link elemana bak ve ID'yi çıkar
+                const linkElement = cardElement.querySelector('a');
+                if (linkElement && linkElement.href) {
+                  const hrefParts = linkElement.href.split('/');
+                  const listingId = hrefParts[hrefParts.length - 1];
+                  
+                  // İlan ID'sini kullanarak durumu güncelle
+                  const listing = listings.find(l => l._id === listingId);
+                  if (listing) {
+                    // Süresi dolmuş mu kontrol et
+                    const expired = isExpired(listing);
+                    
+                    // Etiket içeriğini ve rengini güncelle
+                    if (expired) {
+                      // İçindeki span elementini bul (etiket metni)
+                      const labelSpan = chip.querySelector('span.MuiChip-label');
+                      if (labelSpan) {
+                        labelSpan.textContent = 'Süresi Dolmuş';
+                        console.log(`İlan #${listingId} etiketi düzeltildi: Süresi Dolmuş`);
+                      }
+                      
+                      // Renk sınıflarını değiştir
+                      chip.classList.remove('MuiChip-colorSuccess');
+                      chip.classList.add('MuiChip-colorPrimary');
+                    }
+                  }
+                }
+              }
+            }
+          });
+        } catch (error) {
+          console.error("DOM düzeltme hatası:", error);
+        }
+      }, 500); // Kartların render olması için bir süre bekle
+    };
+    
+    // Sayfa yüklendiğinde ve filtreleme değiştiğinde çalıştır
+    fixListingStatuses();
+    
+    return () => {
+      // Temizleme işlemi gerekiyorsa
+    };
+  }, [filteredListings, listings]);
 
   return (
     <Container maxWidth="lg" sx={{ py: 5 }}>
@@ -158,16 +677,62 @@ export const ListingsPage: React.FC = () => {
         </Button>
       </Box>
       
-      <Tabs 
-        value={tabValue} 
-        onChange={handleTabChange}
-        sx={{ mb: 4, borderBottom: 1, borderColor: 'divider' }}
-        textColor="primary"
-        indicatorColor="primary"
-      >
-        <Tab label="Aktif İlanlar" />
-        <Tab label="Tüm İlanlar" />
-      </Tabs>
+      {/* Filtreleme ve Sıralama Araçları */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 4 }}>
+        <FormControl fullWidth size="small">
+          <InputLabel id="category-select-label">Kategori</InputLabel>
+          <Select
+            labelId="category-select-label"
+            id="category-select"
+            value={selectedCategory}
+            label="Kategori"
+            onChange={handleCategoryChange}
+            startAdornment={<FilterListIcon sx={{ mr: 1, color: 'action.active' }} />}
+          >
+            <MenuItem value="">Tüm Kategoriler</MenuItem>
+            {categories.map((category) => (
+              <MenuItem key={category._id} value={category._id}>
+                {category.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        
+        <FormControl fullWidth size="small">
+          <InputLabel id="sort-select-label">Sıralama</InputLabel>
+          <Select
+            labelId="sort-select-label"
+            id="sort-select"
+            value={sortBy}
+            label="Sıralama"
+            onChange={handleSortChange}
+            startAdornment={<SortIcon sx={{ mr: 1, color: 'action.active' }} />}
+          >
+            <MenuItem value="newest">En Yeni</MenuItem>
+            <MenuItem value="oldest">En Eski</MenuItem>
+            <MenuItem value="priceAsc">Fiyat: Düşükten Yükseğe</MenuItem>
+            <MenuItem value="priceDesc">Fiyat: Yüksekten Düşüğe</MenuItem>
+            <MenuItem value="endDateAsc">Bitiş: Yakından Uzağa</MenuItem>
+            <MenuItem value="endDateDesc">Bitiş: Uzaktan Yakına</MenuItem>
+          </Select>
+        </FormControl>
+        
+        <FormControl fullWidth size="small">
+          <InputLabel id="status-select-label">Durum</InputLabel>
+          <Select
+            labelId="status-select-label"
+            id="status-select"
+            value={statusFilter}
+            label="Durum"
+            onChange={handleStatusFilterChange}
+            startAdornment={<FilterListIcon sx={{ mr: 1, color: 'action.active' }} />}
+          >
+            <MenuItem value="all">Tüm İlanlar</MenuItem>
+            <MenuItem value="active">Aktif İlanlar</MenuItem>
+            <MenuItem value="ended">Süresi Dolmuş İlanlar</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
       
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}>
@@ -175,10 +740,10 @@ export const ListingsPage: React.FC = () => {
         </Box>
       ) : error ? (
         <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>
-      ) : listings.length === 0 ? (
+      ) : filteredListings.length === 0 ? (
         <Alert severity="info" sx={{ my: 2 }}>
-          {categoryId 
-            ? 'Bu kategoride ilan bulunamadı.' 
+          {selectedCategory 
+            ? `"${categories.find(c => c._id === selectedCategory)?.name || selectedCategory}" kategorisinde ilan bulunamadı.` 
             : 'Hiç ilan bulunamadı. İlk ilanı sen oluşturmak ister misin?'}
         </Alert>
       ) : (
@@ -191,106 +756,154 @@ export const ListingsPage: React.FC = () => {
           },
           gap: 3
         }}>
-          {listings.map((listing, index) => (
-            <Box key={listing._id || index}>
-              <Card 
-                sx={{ 
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-5px)',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
-                  }
-                }}
-              >
-                <CardActionArea 
-                  component={RouterLink} 
-                  to={`/listings/${listing._id}`}
+          {filteredListings.map((listing, index) => {
+            // Her kart için durum bilgisi hesapla
+            const statusInfo = getCardStatusInfo(listing);
+            
+            return (
+              <Box key={`${listing._id || index}-${statusInfo.label}`}>
+                <Card 
                   sx={{ 
-                    flex: 1, 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'stretch'
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    bgcolor: (() => {
+                      // Kullanıcı giriş yapmamışsa beyaz göster
+                      if (!state.user) return 'white';
+                      
+                      // Kullanıcı ID'sini alalım
+                      const userId = state.user._id;
+                      const HIGHLIGHT_COLOR = '#FFF9C4'; // Açık sarı ton
+                      
+                      // seller bir obje ise ve _id özelliği varsa
+                      if (typeof listing.seller === 'object' && listing.seller && listing.seller._id) {
+                        if (listing.seller._id === userId) return HIGHLIGHT_COLOR;
+                      } 
+                      // seller bir string ise
+                      else if (typeof listing.seller === 'string') {
+                        if (listing.seller === userId) return HIGHLIGHT_COLOR;
+                      }
+                      
+                      // Ayrıca owner alanı da kontrol edilmeli
+                      if (typeof listing.owner === 'object' && listing.owner && listing.owner._id) {
+                        if (listing.owner._id === userId) return HIGHLIGHT_COLOR;
+                      }
+                      else if (typeof listing.owner === 'string') {
+                        if (listing.owner === userId) return HIGHLIGHT_COLOR;
+                      }
+                      
+                      return 'white';
+                    })(),
+                    '&:hover': {
+                      transform: 'translateY(-5px)',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+                    }
                   }}
                 >
-                  <Box sx={{ position: 'relative' }}>
-                    <CardMedia
-                      component="img"
-                      height="160"
-                      image={listing.images?.[0] || 'https://via.placeholder.com/300x160?text=Resim+Yok'}
-                      alt={listing.title}
-                    />
-                    <Chip
-                      label={listing.status === 'active' ? 'Aktif' : listing.status === 'ended' ? 'Tamamlandı' : 'İptal Edildi'}
-                      color={listing.status === 'active' ? 'success' : listing.status === 'ended' ? 'primary' : 'error'}
-                      size="small"
-                      sx={{
-                        position: 'absolute',
-                        top: 10,
-                        right: 10,
-                        fontWeight: 'bold'
-                      }}
-                    />
-                  </Box>
-                  
-                  <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                      {typeof listing.category === 'object' && listing.category ? listing.category.name : 'Genel'}
-                    </Typography>
-                    
-                    <Typography 
-                      variant="h6" 
-                      component="h2" 
-                      gutterBottom
-                      sx={{ 
-                        fontWeight: 'bold',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        mb: 2
-                      }}
-                    >
-                      {listing.title}
-                    </Typography>
-
-                    <Box sx={{ mt: 'auto' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Başlangıç:
-                        </Typography>
-                        <Typography variant="body2" color="text.primary" fontWeight="bold">
-                          {formatPrice(listing.startingPrice)}
-                        </Typography>
-                      </Box>
-                      
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Güncel:
-                        </Typography>
-                        <Typography variant="body2" color="primary" fontWeight="bold">
-                          {formatPrice(listing.currentPrice)}
-                        </Typography>
-                      </Box>
-                      
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Kalan Süre:
-                        </Typography>
-                        <Typography variant="body2" color="error" fontWeight="bold">
-                          {listing.endDate ? calculateTimeLeft(listing.endDate) : 'Belirsiz'}
-                        </Typography>
-                      </Box>
+                  <CardActionArea 
+                    component={RouterLink} 
+                    to={`/listings/${listing._id}`}
+                    sx={{ 
+                      flex: 1, 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'stretch'
+                    }}
+                  >
+                    <Box sx={{ position: 'relative' }}>
+                      <CardMedia
+                        component="img"
+                        height="160"
+                        image={listing.images?.[0] || getCategoryImage(typeof listing.category === 'object' && listing.category ? listing.category.name : 'Genel')}
+                        alt={listing.title}
+                        sx={{ 
+                          objectFit: 'cover',
+                          transition: 'transform 0.3s ease-in-out',
+                          '&:hover': {
+                            transform: 'scale(1.05)'
+                          }
+                        }}
+                      />
+                      <Chip
+                        label={statusInfo.label}
+                        color={statusInfo.color}
+                        size="small"
+                        sx={{
+                          position: 'absolute',
+                          top: 10,
+                          right: 10,
+                          fontWeight: 'bold'
+                        }}
+                      />
                     </Box>
-                  </CardContent>
-                </CardActionArea>
-              </Card>
-            </Box>
-          ))}
+                    
+                    <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <Chip
+                        label={typeof listing.category === 'object' && listing.category ? listing.category.name : 'Genel'}
+                        size="small"
+                        sx={{ 
+                          alignSelf: 'flex-start',
+                          mb: 2,
+                          backgroundColor: '#e8f5fe',
+                          color: '#0288d1',
+                          fontWeight: 'medium',
+                          '&:hover': { backgroundColor: '#d1e8fd' }
+                        }}
+                      />
+                      
+                      <Typography 
+                        variant="h6" 
+                        component="h2" 
+                        gutterBottom
+                        sx={{ 
+                          fontWeight: 'bold',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          mb: 2
+                        }}
+                      >
+                        {listing.title}
+                      </Typography>
+
+                      <Box sx={{ mt: 'auto' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Başlangıç:
+                          </Typography>
+                          <Typography variant="body2" color="text.primary" fontWeight="bold">
+                            {formatPrice(listing.startingPrice)}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Güncel:
+                          </Typography>
+                          <Typography variant="body2" color="primary" fontWeight="bold">
+                            {formatPrice(listing.currentPrice)}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Kalan Süre:
+                          </Typography>
+                          <Typography variant="body2" color="error" fontWeight="bold">
+                            {listing.endDate ? calculateTimeLeft(listing.endDate) : 'Belirsiz'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Box>
+            );
+          })}
         </Box>
       )}
     </Container>

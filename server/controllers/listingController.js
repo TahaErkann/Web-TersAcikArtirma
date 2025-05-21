@@ -1,5 +1,6 @@
 const Listing = require('../models/Listing');
 const User = require('../models/User');
+const notificationService = require('../services/notificationService');
 
 // Tüm ilanları getir
 exports.getAllListings = async (req, res) => {
@@ -486,6 +487,20 @@ exports.placeBid = async (req, res) => {
         listing: updatedListing,
         bid: newBid
       });
+    }
+    
+    // İlan sahibine bildirim gönder
+    try {
+      await notificationService.createNotification(
+        listing.owner.toString(),
+        'bid',
+        'Yeni Teklif Alındı',
+        `"${listing.title}" ilanınıza ${bidAmount} TL değerinde yeni bir teklif geldi`,
+        listing._id
+      );
+      console.log('İlan sahibine bildirim gönderildi');
+    } catch (notifError) {
+      console.error('Bildirim gönderilirken hata oluştu:', notifError);
     }
     
     console.log('Teklif başarılı, yanıt dönülüyor...');

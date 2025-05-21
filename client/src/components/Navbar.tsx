@@ -31,10 +31,10 @@ import {
   ShoppingCart, 
   Home, 
   Category,
-  Notifications,
   LightMode,
   DarkMode
 } from '@mui/icons-material';
+import NotificationBell from './NotificationBell';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 // TODO: Bu interface'i types klasörüne taşı
@@ -208,13 +208,9 @@ const Navbar: React.FC<NavbarProps> = ({ user, logout }) => {
 
             {user ? (
               <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center' }}>
-                <Tooltip title="Bildirimler">
-                  <IconButton sx={{ mr: 1 }}>
-                    <Badge badgeContent={3} color="primary">
-                      <Notifications fontSize="small" />
-                    </Badge>
-                  </IconButton>
-                </Tooltip>
+                <Box sx={{ mr: 1 }}>
+                  <NotificationBell />
+                </Box>
                 
                 <Tooltip title="Tema değiştir">
                   <IconButton sx={{ mr: 1 }}>

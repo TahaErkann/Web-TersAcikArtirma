@@ -143,7 +143,7 @@ const ProfilePage: React.FC = () => {
       <Container maxWidth="lg">
         <Grid container spacing={4}>
           {/* Sol taraf - Profil özeti */}
-          <Grid item xs={12} md={4}>
+          <Grid lg={4} sm={12}>
             <Stack spacing={3}>
               {/* Profil kartı */}
               <Card 
@@ -371,7 +371,7 @@ const ProfilePage: React.FC = () => {
           </Grid>
           
           {/* Sağ taraf - Form */}
-          <Grid item xs={12} md={8}>
+          <Grid lg={8} sm={12}>
             <Paper 
               elevation={0} 
               sx={{ 
@@ -395,7 +395,7 @@ const ProfilePage: React.FC = () => {
                   <Divider sx={{ mb: 3 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6}>
+                    <Grid md={6} xs={12}>
                       <TextField
                         fullWidth
                         disabled
@@ -421,7 +421,7 @@ const ProfilePage: React.FC = () => {
                       />
                     </Grid>
                     
-                    <Grid item xs={12} sm={6}>
+                    <Grid md={6} xs={12}>
                       <TextField
                         fullWidth
                         disabled
@@ -447,7 +447,7 @@ const ProfilePage: React.FC = () => {
                   <Divider sx={{ mb: 3 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6}>
+                    <Grid md={6} xs={12}>
                       <TextField
                         required
                         fullWidth
@@ -466,7 +466,7 @@ const ProfilePage: React.FC = () => {
                       />
                     </Grid>
                     
-                    <Grid item xs={12} sm={6}>
+                    <Grid md={6} xs={12}>
                       <TextField
                         required
                         fullWidth
@@ -485,7 +485,7 @@ const ProfilePage: React.FC = () => {
                       />
                     </Grid>
                     
-                    <Grid item xs={12}>
+                    <Grid xs={12}>
                       <TextField
                         required
                         fullWidth
@@ -506,7 +506,7 @@ const ProfilePage: React.FC = () => {
                       />
                     </Grid>
                     
-                    <Grid item xs={12} sm={6}>
+                    <Grid md={6} xs={12}>
                       <TextField
                         required
                         fullWidth
@@ -525,7 +525,7 @@ const ProfilePage: React.FC = () => {
                       />
                     </Grid>
                     
-                    <Grid item xs={12} sm={6}>
+                    <Grid md={6} xs={12}>
                       <TextField
                         required
                         fullWidth
@@ -545,7 +545,7 @@ const ProfilePage: React.FC = () => {
                       />
                     </Grid>
                     
-                    <Grid item xs={12}>
+                    <Grid xs={12}>
                       <TextField
                         fullWidth
                         label="Firma Açıklaması"
@@ -566,7 +566,7 @@ const ProfilePage: React.FC = () => {
                       />
                     </Grid>
                     
-                    <Grid item xs={12}>
+                    <Grid xs={12}>
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                         <Button
                           type="submit"
