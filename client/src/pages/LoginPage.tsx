@@ -192,21 +192,16 @@ const LoginPage: React.FC = () => {
                   <Box textAlign="center">
                     <Box sx={{ display: 'inline-flex', mb: 2 }}>
                       <Box
+                        component="img"
+                        src="/logo.png"
+                        alt="RevBid Logo"
                         sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
                           width: 50,
                           height: 50,
                           borderRadius: 2,
-                          bgcolor: alpha(theme.palette.primary.main, 0.1),
-                          color: 'primary.main',
-                          fontSize: 20,
-                          fontWeight: 800
+                          objectFit: 'contain'
                         }}
-                      >
-                        TA
-                      </Box>
+                      />
                     </Box>
                     
                     <Typography component="h1" variant="h4" fontWeight={700} gutterBottom>

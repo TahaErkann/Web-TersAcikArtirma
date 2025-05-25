@@ -25,8 +25,8 @@ const checkListingExpiry = async () => {
     for (const listing of expiredListings) {
       console.log(`İlan işleniyor: ${listing._id} - ${listing.title}`);
       
-      // İlan durumunu expired olarak güncelle
-      listing.status = 'expired';
+      // İlan durumunu ended olarak güncelle (expired yerine ended kullanıyoruz)
+      listing.status = 'ended';
       
       // En düşük teklifi bul ve kazanan olarak belirle
       const lowestBid = listing.getCurrentLowestBid();
@@ -42,7 +42,7 @@ const checkListingExpiry = async () => {
       const updatedListing = await Listing.findById(listing._id)
         .populate('owner', 'name')
         .populate('winner', 'name')
-        .populate('category', 'name');
+        .populate('category', 'name image');
       
       // Socket.io ile güncelleme gönder
       if (global.io) {

@@ -43,6 +43,7 @@ exports.register = async (req, res) => {
       user: {
         _id: newUser._id,
         name: newUser.name,
+        username: newUser.name,
         email: newUser.email,
         isAdmin: newUser.isAdmin,
         isApproved: newUser.isApproved
@@ -80,6 +81,7 @@ exports.login = async (req, res) => {
       user: {
         _id: user._id,
         name: user.name,
+        username: user.name,
         email: user.email,
         isAdmin: user.isAdmin,
         isApproved: user.isApproved
@@ -95,8 +97,28 @@ exports.login = async (req, res) => {
 exports.getCurrentUser = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password -__v');
-    res.json(user);
+    console.log('getCurrentUser: Bulunan user:', user);
+    console.log('getCurrentUser: User companyInfo:', user.companyInfo);
+    
+    // CompanyInfo undefined ise default değerler ata
+    if (!user.companyInfo) {
+      user.companyInfo = {
+        companyName: '',
+        address: '',
+        city: '',
+        phone: '',
+        taxNumber: '',
+        description: ''
+      };
+    }
+    
+    // User objesini düzenle ve username alanını ekle
+    const userResponse = user.toObject();
+    userResponse.username = user.name; // username alanını name'den oluştur
+    
+    res.json(userResponse);
   } catch (error) {
+    console.error('getCurrentUser hatası:', error);
     res.status(500).json({ message: 'Sunucu hatası' });
   }
 };

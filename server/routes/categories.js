@@ -1,21 +1,32 @@
 const express = require('express');
 const router = express.Router();
-const categoryController = require('../controllers/categoryController');
+const { 
+  getAllCategories, 
+  getAllCategoriesForAdmin,
+  getCategoryById, 
+  createCategory, 
+  updateCategory, 
+  deleteCategory 
+} = require('../controllers/categoryController');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
+const { uploadCategoryImage } = require('../middleware/upload');
 
-// Tüm kategorileri getir (genel erişim)
-router.get('/', categoryController.getAllCategories);
+// Genel kategoriler (aktif olanlar)
+router.get('/', getAllCategories);
 
-// Kategori detayını getir (genel erişim)
-router.get('/:id', categoryController.getCategoryById);
+// Admin: Tüm kategoriler (aktif/pasif tümü)
+router.get('/admin', authenticateToken, isAdmin, getAllCategoriesForAdmin);
+
+// Kategori detayı
+router.get('/:id', getCategoryById);
 
 // Admin: Yeni kategori oluştur
-router.post('/', authenticateToken, isAdmin, categoryController.createCategory);
+router.post('/', authenticateToken, isAdmin, uploadCategoryImage, createCategory);
 
 // Admin: Kategori güncelle
-router.put('/:id', authenticateToken, isAdmin, categoryController.updateCategory);
+router.put('/:id', authenticateToken, isAdmin, uploadCategoryImage, updateCategory);
 
 // Admin: Kategori sil
-router.delete('/:id', authenticateToken, isAdmin, categoryController.deleteCategory);
+router.delete('/:id', authenticateToken, isAdmin, deleteCategory);
 
 module.exports = router; 

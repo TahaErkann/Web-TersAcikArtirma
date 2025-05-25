@@ -37,23 +37,39 @@ const UserSchema = new Schema({
   },
   // Firma bilgileri
   companyInfo: {
+    type: {
     companyName: {
-      type: String
+        type: String,
+        default: ''
     },
     address: {
-      type: String
+        type: String,
+        default: ''
     },
     city: {
-      type: String
+        type: String,
+        default: ''
     },
     phone: {
-      type: String
+        type: String,
+        default: ''
     },
     taxNumber: {
-      type: String
+        type: String,
+        default: ''
     },
     description: {
-      type: String
+        type: String,
+        default: ''
+      }
+    },
+    default: {
+      companyName: '',
+      address: '',
+      city: '',
+      phone: '',
+      taxNumber: '',
+      description: ''
     }
   },
   isAdmin: {

@@ -1,13 +1,19 @@
 import api from './api';
 import { Category } from '../types';
 
-// Tüm kategorileri getir
+// Tüm aktif kategorileri getir
 export const getAllCategories = async (): Promise<Category[]> => {
   const response = await api.get('/categories');
   return response.data;
 };
 
-// Kategori detayı getir
+// Admin: Tüm kategorileri getir (aktif/pasif tümü)
+export const getAllCategoriesForAdmin = async (): Promise<Category[]> => {
+  const response = await api.get('/categories/admin');
+  return response.data;
+};
+
+// Kategori detayını getir
 export const getCategoryById = async (id: string): Promise<Category> => {
   const response = await api.get(`/categories/${id}`);
   return response.data;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Container,
   Typography,
@@ -23,7 +23,8 @@ import {
   Alert,
   useTheme,
   alpha,
-  InputAdornment
+  InputAdornment,
+  Avatar
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -31,10 +32,12 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  CloudUpload as CloudUploadIcon,
+  Image as ImageIcon
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
-import { getAllCategories, createCategory, updateCategory, deleteCategory } from '../services/categoryService';
+import { getAllCategoriesForAdmin, createCategory, updateCategory, deleteCategory } from '../services/categoryService';
 import { Category } from '../types';
 
 const AdminCategoriesPage: React.FC = () => {
@@ -53,6 +56,9 @@ const AdminCategoriesPage: React.FC = () => {
   const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
+  const [categoryImage, setCategoryImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -78,7 +84,7 @@ const AdminCategoriesPage: React.FC = () => {
   const loadCategories = async () => {
     try {
       setLoading(true);
-      const data = await getAllCategories();
+      const data = await getAllCategoriesForAdmin();
       setCategories(data);
       setFilteredCategories(data);
       setError(null);
@@ -94,6 +100,8 @@ const AdminCategoriesPage: React.FC = () => {
   const handleOpenAddModal = () => {
     setCategoryName('');
     setCategoryDescription('');
+    setCategoryImage(null);
+    setImagePreview(null);
     setCurrentCategory(null);
     setModalMode('add');
     setOpenModal(true);
@@ -103,6 +111,9 @@ const AdminCategoriesPage: React.FC = () => {
   const handleOpenEditModal = (category: Category) => {
     setCategoryName(category.name);
     setCategoryDescription(category.description || '');
+    setCategoryImage(null);
+    const apiUrl = 'http://localhost:5001';
+    setImagePreview(category.image ? `${apiUrl}${category.image}` : null);
     setCurrentCategory(category);
     setModalMode('edit');
     setOpenModal(true);
@@ -111,6 +122,30 @@ const AdminCategoriesPage: React.FC = () => {
   // Modalı kapat
   const handleCloseModal = () => {
     setOpenModal(false);
+    setCategoryImage(null);
+    setImagePreview(null);
+  };
+
+  // Resim seçme
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setCategoryImage(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Resim kaldırma
+  const handleRemoveImage = () => {
+    setCategoryImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // Kategori kaydet (ekle/düzenle)
@@ -121,24 +156,73 @@ const AdminCategoriesPage: React.FC = () => {
     }
 
     try {
+      console.log('handleSaveCategory başladı');
+      console.log('modalMode:', modalMode);
+      console.log('currentCategory:', currentCategory);
+      console.log('categoryImage:', categoryImage);
+
+      const formData = new FormData();
+      formData.append('name', categoryName.trim());
+      formData.append('description', categoryDescription.trim() || '');
+      
+      if (categoryImage) {
+        formData.append('image', categoryImage);
+        console.log('Resim FormData\'ya eklendi');
+      }
+
+      const apiUrl = 'http://localhost:5001';
+      console.log('API URL:', apiUrl);
+
       if (modalMode === 'add') {
-        await createCategory({
-          name: categoryName.trim(),
-          description: categoryDescription.trim() || undefined,
-          isActive: true
+        const url = `${apiUrl}/api/categories`;
+        console.log('POST URL:', url);
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('ters_acik_artirma_token')}`
+          },
+          body: formData
         });
+
+        console.log('POST Response status:', response.status);
+        console.log('POST Response ok:', response.ok);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.log('POST Error response:', errorText);
+          throw new Error('Kategori oluşturulamadı');
+        }
+
         setSuccess('Kategori başarıyla eklendi.');
       } else if (modalMode === 'edit' && currentCategory) {
-        await updateCategory(currentCategory._id, {
-          name: categoryName.trim(),
-          description: categoryDescription.trim() || undefined
+        const url = `${apiUrl}/api/categories/${currentCategory._id}`;
+        console.log('PUT URL:', url);
+        
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('ters_acik_artirma_token')}`
+          },
+          body: formData
         });
+
+        console.log('PUT Response status:', response.status);
+        console.log('PUT Response ok:', response.ok);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.log('PUT Error response:', errorText);
+          throw new Error('Kategori güncellenemedi');
+        }
+
         setSuccess('Kategori başarıyla güncellendi.');
       }
 
       handleCloseModal();
       loadCategories();
     } catch (err) {
+      console.error('handleSaveCategory error:', err);
       setError('Kategori kaydedilirken bir hata oluştu.');
       console.error(err);
     }
@@ -266,6 +350,7 @@ const AdminCategoriesPage: React.FC = () => {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell>Resim</TableCell>
                   <TableCell>Kategori Adı</TableCell>
                   <TableCell>Açıklama</TableCell>
                   <TableCell>Durum</TableCell>
@@ -276,75 +361,86 @@ const AdminCategoriesPage: React.FC = () => {
               <TableBody>
                 {filteredCategories.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
                       <Typography color="text.secondary">
                         {searchQuery ? 'Arama kriterlerine uygun kategori bulunamadı.' : 'Henüz kategori bulunmamaktadır.'}
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCategories.map((category) => (
-                    <TableRow key={category._id} hover>
-                      <TableCell>
-                        <Typography variant="subtitle2">{category.name}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 250 }}>
-                          {category.description || '-'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {category.isActive ? (
-                          <Chip
-                            icon={<CheckCircleIcon fontSize="small" />}
-                            label="Aktif"
-                            variant="outlined"
-                            color="success"
+                  filteredCategories.map((category) => {
+                    const apiUrl = 'http://localhost:5001';
+                    return (
+                      <TableRow key={category._id} hover>
+                        <TableCell>
+                          <Avatar
+                            src={category.image ? `${apiUrl}${category.image}` : undefined}
+                            sx={{ width: 40, height: 40 }}
+                          >
+                            <ImageIcon />
+                          </Avatar>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="subtitle2">{category.name}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 250 }}>
+                            {category.description || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {category.isActive ? (
+                            <Chip
+                              icon={<CheckCircleIcon fontSize="small" />}
+                              label="Aktif"
+                              variant="outlined"
+                              color="success"
+                              size="small"
+                            />
+                          ) : (
+                            <Chip
+                              icon={<CancelIcon fontSize="small" />}
+                              label="Pasif"
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {category.createdAt 
+                              ? new Date(category.createdAt).toLocaleDateString('tr-TR')
+                              : '-'
+                            }
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <IconButton
+                            onClick={() => handleOpenEditModal(category)}
                             size="small"
-                          />
-                        ) : (
-                          <Chip
-                            icon={<CancelIcon fontSize="small" />}
-                            label="Pasif"
-                            variant="outlined"
-                            color="error"
+                            sx={{
+                              color: 'primary.main',
+                              mr: 1,
+                              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            onClick={() => handleOpenDeleteDialog(category)}
                             size="small"
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {category.createdAt 
-                            ? new Date(category.createdAt).toLocaleDateString('tr-TR')
-                            : '-'
-                          }
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <IconButton
-                          onClick={() => handleOpenEditModal(category)}
-                          size="small"
-                          sx={{
-                            color: 'primary.main',
-                            mr: 1,
-                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
-                          }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          onClick={() => handleOpenDeleteDialog(category)}
-                          size="small"
-                          sx={{
-                            color: 'error.main',
-                            '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            sx={{
+                              color: 'error.main',
+                              '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -383,7 +479,79 @@ const AdminCategoriesPage: React.FC = () => {
             variant="outlined"
             multiline
             rows={4}
+            sx={{ mb: 2 }}
           />
+          
+          {/* Resim Yükleme */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+              📷 Kategori Resmi
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+              Kategoriniz için bir resim seçin (JPEG, PNG, GIF, WebP - Max 5MB)
+            </Typography>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              style={{ display: 'none' }}
+            />
+            
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2,
+              p: 2,
+              border: '2px dashed',
+              borderColor: 'primary.main',
+              borderRadius: 2,
+              bgcolor: alpha(theme.palette.primary.main, 0.05)
+            }}>
+              <Button
+                variant="contained"
+                startIcon={<CloudUploadIcon />}
+                onClick={() => fileInputRef.current?.click()}
+                size="medium"
+                sx={{ minWidth: 140 }}
+              >
+                📸 Resim Seç
+              </Button>
+              
+              {imagePreview && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={handleRemoveImage}
+                  size="medium"
+                  startIcon={<DeleteIcon />}
+                >
+                  🗑️ Kaldır
+                </Button>
+              )}
+              
+              {!imagePreview && (
+                <Typography variant="body2" color="text.secondary">
+                  🖼️ Henüz resim seçilmedi
+                </Typography>
+              )}
+            </Box>
+            
+            {imagePreview && (
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <Avatar
+                  src={imagePreview}
+                  sx={{ width: 100, height: 100, mx: 'auto', mb: 1 }}
+                >
+                  <ImageIcon />
+                </Avatar>
+                <Typography variant="body2" color="success.main" fontWeight="bold">
+                  ✅ Resim başarıyla seçildi!
+                </Typography>
+              </Box>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseModal} color="inherit" variant="outlined">

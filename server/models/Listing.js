@@ -117,7 +117,7 @@ const ListingSchema = new Schema({
   bids: [BidSchema],
   status: {
     type: String,
-    enum: ['active', 'completed', 'cancelled', 'expired'],
+    enum: ['active', 'completed', 'cancelled', 'expired', 'ended'],
     default: 'active'
   },
   expiresAt: {

@@ -22,8 +22,10 @@ export const SocketProvider: React.FC<{children: React.ReactNode}> = ({ children
     let socketInstance: Socket | null = null;
     
     const setupSocket = () => {
-      // API URL'i ortam değişkeninden veya varsayılan değerden al
-      const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      // API URL'i ortam değişkeninden veya varsayılan değerden al  
+      const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      // Socket.io için /api namespace'ini kullanma
+      const SOCKET_URL = BASE_URL.replace('/api', '');
       console.log('Socket.io bağlantısı başlatılıyor:', SOCKET_URL);
       
       try {

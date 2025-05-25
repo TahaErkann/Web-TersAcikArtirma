@@ -65,7 +65,12 @@ const ListingDetailPage: React.FC = () => {
   
   // İlan detaylarını yükle
   const fetchListing = useCallback(async () => {
-    if (!id) return;
+    if (!id || id === 'undefined') {
+      console.error('İlan ID\'si bulunamadı veya geçersiz:', id);
+      setError('İlan ID\'si bulunamadı.');
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);

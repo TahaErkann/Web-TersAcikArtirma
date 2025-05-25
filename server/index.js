@@ -69,6 +69,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Uploads klasörünü statik olarak servis et
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // MongoDB Bağlantı Seçenekleri
 const mongooseOptions = {
   useNewUrlParser: true,

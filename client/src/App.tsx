@@ -18,8 +18,8 @@ import AdminCategoriesPage from './pages/AdminCategoriesPage';
 import CreateListingPage from './pages/CreateListingPage';
 import ListingDetailPage from './pages/ListingDetailPage';
 import ListingsPage from './pages/ListingsPage';
-// import MyListingsPage from './pages/MyListingsPage';
-// import MyBidsPage from './pages/MyBidsPage';
+import MyListingsPage from './pages/MyListingsPage';
+import MyBidsPage from './pages/MyBidsPage';
 
 // Tema oluştur
 const theme = createTheme({
@@ -320,18 +320,6 @@ const AppContent: React.FC = () => {
         <Route path="/listings" element={<ListingsPage />} />
         <Route path="/create-listing" element={<CreateListingPage />} />
         <Route path="/listings/:id" element={<ListingDetailPage />} />
-        {/* <Route path="/listings" element={<ListingsPage />} />
-        <Route path="/listings/:id" element={<ListingDetailPage />} />
-        
-        <Route
-          path="/create-listing"
-          element={
-            <ApprovedRoute>
-              <CreateListingPage />
-            </ApprovedRoute>
-          }
-        />
-        
         <Route
           path="/my-listings"
           element={
@@ -340,7 +328,6 @@ const AppContent: React.FC = () => {
             </ProtectedRoute>
           }
         />
-        
         <Route
           path="/my-bids"
           element={
@@ -348,7 +335,7 @@ const AppContent: React.FC = () => {
               <MyBidsPage />
             </ProtectedRoute>
           }
-        /> */}
+        />
       </Routes>
     </Router>
   );

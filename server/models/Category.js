@@ -13,6 +13,9 @@ const CategorySchema = new Schema({
   icon: {
     type: String
   },
+  image: {
+    type: String
+  },
   isActive: {
     type: Boolean,
     default: true

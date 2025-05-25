@@ -49,7 +49,8 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { getAllUsers, approveUser, rejectUser } from '../services/authService';
-import { User } from '../types';
+import { getAllListings, deleteListing } from '../services/listingService';
+import { User, Listing } from '../types';
 import { Link as RouterLink } from 'react-router-dom';
 
 // TabPanel component
@@ -78,7 +79,9 @@ const AdminPage: React.FC = () => {
   const theme = useTheme();
   const [tabValue, setTabValue] = useState(0);
   const [users, setUsers] = useState<User[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listingsLoading, setListingsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
@@ -88,6 +91,11 @@ const AdminPage: React.FC = () => {
   const [rejectDialog, setRejectDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  
+  // Listing dialog states
+  const [viewListingDialog, setViewListingDialog] = useState(false);
+  const [deleteListingDialog, setDeleteListingDialog] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   
   // Fetch users on component mount
   useEffect(() => {
@@ -107,9 +115,27 @@ const AdminPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const fetchListings = async () => {
+    try {
+      setListingsLoading(true);
+      const fetchedListings = await getAllListings();
+      setListings(fetchedListings);
+      setError(null);
+    } catch (err) {
+      setError('İlanlar yüklenirken bir hata oluştu.');
+      console.error(err);
+    } finally {
+      setListingsLoading(false);
+    }
+  };
   
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+    // İlan sekmesine geçildiğinde ilanları yükle
+    if (newValue === 3 && listings.length === 0) {
+      fetchListings();
+    }
   };
   
   // Filter users based on approval status
@@ -117,10 +143,42 @@ const AdminPage: React.FC = () => {
   const approvedUsers = users.filter(u => !u.isAdmin && u.isApproved);
   const rejectedUsers = users.filter(u => !u.isAdmin && u.isRejected);
   
+  // Filter listings
+  const activeListings = listings.filter(l => l.status === 'active');
+  const endedListings = listings.filter(l => l.status === 'ended' || l.status === 'expired');
+  const cancelledListings = listings.filter(l => l.status === 'cancelled');
+  
   // View user details
   const handleViewUser = (user) => {
     setSelectedUser(user);
     setViewUserDialog(true);
+  };
+
+  // View listing details
+  const handleViewListing = (listing) => {
+    setSelectedListing(listing);
+    setViewListingDialog(true);
+  };
+
+  // Delete listing
+  const handleOpenDeleteListingDialog = (listing) => {
+    setSelectedListing(listing);
+    setDeleteListingDialog(true);
+  };
+
+  const handleDeleteListing = async () => {
+    if (!selectedListing) return;
+    
+    try {
+      await deleteListing(selectedListing._id);
+      setSuccessMessage('İlan başarıyla silindi.');
+      setDeleteListingDialog(false);
+      setSelectedListing(null);
+      fetchListings(); // Listeyi yenile
+    } catch (err) {
+      setError('İlan silinirken bir hata oluştu.');
+      console.error(err);
+    }
   };
   
   // Approval dialog
@@ -141,7 +199,10 @@ const AdminPage: React.FC = () => {
     setViewUserDialog(false);
     setApproveDialog(false);
     setRejectDialog(false);
+    setViewListingDialog(false);
+    setDeleteListingDialog(false);
     setSelectedUser(null);
+    setSelectedListing(null);
     setRejectionReason('');
   };
   
@@ -411,6 +472,20 @@ const AdminPage: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Cancel sx={{ mr: 1, color: 'error.main' }} fontSize="small" />
                     <Box>Reddedilenler</Box>
+                  </Box>
+                }
+              />
+              <Tab 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Business sx={{ mr: 1, color: 'primary.main' }} fontSize="small" />
+                    <Box>İlan Yönetimi {listings.length > 0 && 
+                      <Chip 
+                        size="small" 
+                        label={listings.length} 
+                        sx={{ ml: 1, height: 20, minWidth: 20 }} 
+                      />
+                    }</Box>
                   </Box>
                 }
               />
@@ -707,6 +782,129 @@ const AdminPage: React.FC = () => {
                   </TableContainer>
                 )}
               </TabPanel>
+              
+              {/* İlan Yönetimi */}
+              <TabPanel value={tabValue} index={3}>
+                {listingsLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : listings.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Business sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.3 }} />
+                    <Typography variant="h6" color="text.secondary" sx={{ mt: 1 }}>
+                      Henüz ilan bulunmamaktadır
+                    </Typography>
+                  </Box>
+                ) : (
+                  <TableContainer>
+                    <Table sx={{ minWidth: 650 }}>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>İlan Bilgileri</TableCell>
+                          <TableCell>Firma</TableCell>
+                          <TableCell>Kategori</TableCell>
+                          <TableCell>Durum</TableCell>
+                          <TableCell>Oluşturulma</TableCell>
+                          <TableCell align="right">İşlemler</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {listings.map((listing) => (
+                          <TableRow key={listing._id} hover>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Box>
+                                  <Typography variant="subtitle2" noWrap sx={{ maxWidth: 200 }}>
+                                    {listing.title}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
+                                    {listing.description}
+                                  </Typography>
+                                  <Typography variant="body2" color="primary">
+                                    ₺{listing.currentPrice || listing.startingPrice || listing.initialMaxPrice}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" noWrap>
+                                {typeof listing.owner === 'object' 
+                                  ? (listing.owner.companyInfo?.companyName || listing.owner.name)
+                                  : 'Bilinmeyen'
+                                }
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" noWrap>
+                                {typeof listing.category === 'object' 
+                                  ? listing.category.name 
+                                  : 'Kategori Yok'
+                                }
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={
+                                  listing.status === 'active' ? 'Aktif' :
+                                  listing.status === 'ended' ? 'Tamamlandı' :
+                                  listing.status === 'expired' ? 'Süresi Doldu' :
+                                  listing.status === 'cancelled' ? 'İptal Edildi' : 
+                                  listing.status
+                                }
+                                color={
+                                  listing.status === 'active' ? 'success' :
+                                  listing.status === 'ended' ? 'primary' :
+                                  listing.status === 'expired' ? 'warning' :
+                                  'error'
+                                }
+                                variant="outlined"
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {listing.createdAt 
+                                  ? new Date(listing.createdAt).toLocaleDateString('tr-TR')
+                                  : '-'
+                                }
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                <Tooltip title="Detayları Görüntüle">
+                                  <IconButton 
+                                    size="small"
+                                    onClick={() => handleViewListing(listing)}
+                                    sx={{ 
+                                      color: 'info.main',
+                                      '&:hover': { bgcolor: alpha(theme.palette.info.main, 0.1) }
+                                    }}
+                                  >
+                                    <Visibility />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="İlanı Sil">
+                                  <IconButton 
+                                    size="small"
+                                    onClick={() => handleOpenDeleteListingDialog(listing)}
+                                    sx={{ 
+                                      color: 'error.main',
+                                      '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
+                                    }}
+                                  >
+                                    <Cancel />
+                                  </IconButton>
+                                </Tooltip>
+                              </Stack>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </TabPanel>
             </>
           )}
           </Paper>
@@ -894,12 +1092,12 @@ const AdminPage: React.FC = () => {
         <DialogTitle>Firmayı Onayla</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            <Typography gutterBottom>
+            <div style={{ marginBottom: '8px' }}>
               <strong>{selectedUser?.companyInfo?.companyName || selectedUser?.name}</strong> firmasını onaylamak istediğinizden emin misiniz?
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
+            </div>
+            <div style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>
               Onaylandıktan sonra firma ilan oluşturabilir ve tekliflerde bulunabilir.
-            </Typography>
+            </div>
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -923,12 +1121,12 @@ const AdminPage: React.FC = () => {
         <DialogTitle>Firmayı Reddet</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            <Typography gutterBottom>
+            <div style={{ marginBottom: '8px' }}>
               <strong>{selectedUser?.companyInfo?.companyName || selectedUser?.name}</strong> firmasını reddetmek istediğinizden emin misiniz?
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
+            </div>
+            <div style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem', marginBottom: '16px' }}>
               Reddedilen firmalar ilan oluşturamaz ve tekliflerde bulunamaz.
-            </Typography>
+            </div>
           </DialogContentText>
           <TextField
             autoFocus
@@ -950,6 +1148,192 @@ const AdminPage: React.FC = () => {
             color="error"
           >
             Reddet
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* İlan detay dialog */}
+      <Dialog
+        open={viewListingDialog}
+        onClose={handleCloseDialogs}
+        maxWidth="md"
+        fullWidth
+      >
+        {selectedListing && (
+          <>
+            <DialogTitle>
+              İlan Detayları
+            </DialogTitle>
+            <DialogContent dividers>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom>
+                    {selectedListing.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" paragraph>
+                    {selectedListing.description}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Kategori
+                  </Typography>
+                  <Typography variant="body1">
+                    {typeof selectedListing.category === 'object' 
+                      ? selectedListing.category.name 
+                      : 'Kategori Yok'
+                    }
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Durum
+                  </Typography>
+                  <Chip 
+                    label={
+                      selectedListing.status === 'active' ? 'Aktif' :
+                      selectedListing.status === 'ended' ? 'Tamamlandı' :
+                      selectedListing.status === 'expired' ? 'Süresi Doldu' :
+                      selectedListing.status === 'cancelled' ? 'İptal Edildi' : 
+                      selectedListing.status
+                    }
+                    color={
+                      selectedListing.status === 'active' ? 'success' :
+                      selectedListing.status === 'ended' ? 'primary' :
+                      selectedListing.status === 'expired' ? 'warning' :
+                      'error'
+                    }
+                    variant="outlined"
+                    size="small"
+                    sx={{ mt: 0.5 }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Güncel Fiyat
+                  </Typography>
+                  <Typography variant="h6" color="primary">
+                    ₺{selectedListing.currentPrice || selectedListing.startingPrice || selectedListing.initialMaxPrice}
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Teklif Sayısı
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedListing.bids ? selectedListing.bids.length : 0} teklif
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Oluşturulma Tarihi
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedListing.createdAt 
+                      ? new Date(selectedListing.createdAt).toLocaleDateString('tr-TR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : '-'
+                    }
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Son Tarih
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedListing.expiresAt || selectedListing.endDate
+                      ? new Date(selectedListing.expiresAt || selectedListing.endDate).toLocaleDateString('tr-TR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : '-'
+                    }
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    İlan Sahibi
+                  </Typography>
+                  <Typography variant="body1">
+                    {typeof selectedListing.owner === 'object' 
+                      ? (selectedListing.owner.companyInfo?.companyName || selectedListing.owner.name)
+                      : 'Bilinmeyen'
+                    }
+                  </Typography>
+                </Grid>
+                
+                {selectedListing.location && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Lokasyon
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedListing.location}
+                    </Typography>
+                  </Grid>
+                )}
+              </Grid>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDialogs} color="inherit">
+                Kapat
+              </Button>
+              <Button 
+                onClick={() => {
+                  handleCloseDialogs();
+                  handleOpenDeleteListingDialog(selectedListing);
+                }} 
+                color="error"
+                variant="contained"
+              >
+                İlanı Sil
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+      
+      {/* İlan silme dialog */}
+      <Dialog
+        open={deleteListingDialog}
+        onClose={handleCloseDialogs}
+      >
+        <DialogTitle>İlanı Sil</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <div style={{ marginBottom: '8px' }}>
+              <strong>{selectedListing?.title}</strong> ilanını silmek istediğinizden emin misiniz?
+            </div>
+            <div style={{ color: 'red', fontSize: '0.875rem' }}>
+              Bu işlem geri alınamaz ve tüm teklifler de silinecektir.
+            </div>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialogs} color="inherit">İptal</Button>
+          <Button 
+            onClick={handleDeleteListing} 
+            variant="contained" 
+            color="error"
+            autoFocus
+          >
+            Sil
           </Button>
         </DialogActions>
       </Dialog>

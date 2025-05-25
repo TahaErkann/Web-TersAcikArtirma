@@ -158,19 +158,16 @@ const Navbar: React.FC<NavbarProps> = ({ user, logout }) => {
               }}
             >
               <Box 
-                component="span"
+                component="img"
+                src="/logo.png"
+                alt="RevBid Logo"
                 sx={{ 
-                  background: 'linear-gradient(90deg, #4F46E5 0%, #6366F1 100%)', 
-                  color: 'white',
-                  p: 0.8,
-                  px: 1.5,
+                  height: 40,
+                  width: 'auto',
                   mr: 1,
-                  borderRadius: 1,
-                  fontSize: '1.3rem'
+                  borderRadius: 1
                 }}
-              >
-                TA
-              </Box>
+              />
               TERS ARTIRMA
             </Typography>
 
@@ -234,7 +231,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, logout }) => {
                 >
                   {user.profilePicture ? (
                     <Avatar 
-                      alt={user.name || user.username} 
+                      alt={user.name || user.username || 'Kullanıcı'} 
                       src={user.profilePicture} 
                       sx={{ width: 32, height: 32 }}
                     />
@@ -246,7 +243,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, logout }) => {
                         bgcolor: 'primary.main' 
                       }}
                     >
-                      {user.name?.charAt(0) || user.username.charAt(0)}
+                      {(user.name?.charAt(0) || user.username?.charAt(0) || 'U').toUpperCase()}
                     </Avatar>
                   )}
                   <Typography 
@@ -256,7 +253,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, logout }) => {
                       display: { xs: 'none', sm: 'block' }
                     }}
                   >
-                    {user.name || user.username}
+                    {user.name || user.username || 'Kullanıcı'}
                   </Typography>
                 </Box>
                 
@@ -369,19 +366,16 @@ const Navbar: React.FC<NavbarProps> = ({ user, logout }) => {
               }}
             >
               <Box 
-                component="span"
+                component="img"
+                src="/logo.png"
+                alt="RevBid Logo"
                 sx={{ 
-                  background: 'linear-gradient(90deg, #4F46E5 0%, #6366F1 100%)', 
-                  color: 'white',
-                  p: 0.8,
-                  px: 1.5,
+                  height: 40,
+                  width: 'auto',
                   mr: 1,
-                  borderRadius: 1,
-                  fontSize: '1.2rem'
+                  borderRadius: 1
                 }}
-              >
-                TA
-              </Box>
+              />
               TERS ARTIRMA
             </Typography>
           </Box>

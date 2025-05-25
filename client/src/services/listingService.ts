@@ -1,5 +1,5 @@
 import api from './api';
-import { Listing, Bid } from '../types';
+import { Listing } from '../types';
 
 // Tüm ilanları getir
 export const getAllListings = async (category?: string): Promise<Listing[]> => {
@@ -224,8 +224,13 @@ export const getListingById = async (id: string, includeFullDetails: boolean = f
 
 // Kullanıcının kendi ilanlarını getir
 export const getMyListings = async (): Promise<Listing[]> => {
-  const response = await api.get('/listings/my-listings');
+  const response = await api.get('/listings/user/mylistings');
   return response.data;
+};
+
+// getUserListings alias (geriye uyumluluk için)
+export const getUserListings = async (): Promise<Listing[]> => {
+  return getMyListings();
 };
 
 // Kullanıcının teklif verdiği ilanları getir

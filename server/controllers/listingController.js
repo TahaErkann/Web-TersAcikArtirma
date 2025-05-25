@@ -18,7 +18,7 @@ exports.getAllListings = async (req, res) => {
     
     const listings = await Listing.find(query)
       .populate('owner', 'name companyInfo.companyName')
-      .populate('category', 'name')
+      .populate('category', 'name image')
       .sort({ createdAt: -1 });
     
     res.json(listings);
@@ -32,7 +32,7 @@ exports.getActiveListings = async (req, res) => {
   try {
     const listings = await Listing.find({ status: 'active' })
       .populate('owner', 'name companyInfo.companyName')
-      .populate('category', 'name')
+      .populate('category', 'name image')
       .sort({ createdAt: -1 });
     
     res.json(listings);
@@ -49,7 +49,7 @@ exports.getListingById = async (req, res) => {
     
     let populateOptions = {
       owner: 'name companyInfo',
-      category: 'name'
+      category: 'name image'
     };
     
     // Tam detay isteniyorsa, teklif veren kullanıcıları daha detaylı getir
@@ -202,14 +202,14 @@ exports.createListing = async (req, res) => {
     // İlanı populate et ve socket üzerinden gönder
     const populatedListing = await Listing.findById(newListing._id)
       .populate('owner', 'name companyInfo.companyName')
-      .populate('category', 'name');
+      .populate('category', 'name image');
     
     // Socket.io ile bildirim gönder
     if (global.io) {
       global.io.emit('listingCreated', populatedListing);
     }
     
-    res.status(201).json({ message: 'İlan başarıyla oluşturuldu', listing: newListing });
+    res.status(201).json(populatedListing);
   } catch (error) {
     console.error('İlan oluşturma hatası:', error);
     res.status(500).json({ message: 'Sunucu hatası', error: error.message });
@@ -265,7 +265,7 @@ exports.updateListing = async (req, res) => {
     // Güncellenmiş ilanı populate et
     const updatedListing = await Listing.findById(listing._id)
       .populate('owner', 'name companyInfo.companyName')
-      .populate('category', 'name');
+      .populate('category', 'name image');
     
     // Socket.io ile bildirim gönder
     if (global.io) {
@@ -331,7 +331,7 @@ exports.cancelListing = async (req, res) => {
     // Güncellenmiş ilanı populate et
     const updatedListing = await Listing.findById(listing._id)
       .populate('owner', 'name companyInfo.companyName')
-      .populate('category', 'name');
+      .populate('category', 'name image');
     
     // Socket.io ile bildirim gönder
     if (global.io) {
@@ -475,7 +475,7 @@ exports.placeBid = async (req, res) => {
       .populate('bids.user', 'name companyInfo.companyName')
       .populate('bids.bidder', 'name companyInfo.companyName')
       .populate('owner', 'name companyInfo.companyName')
-      .populate('category', 'name');
+      .populate('category', 'name image');
     
     const newBid = updatedListing.bids[updatedListing.bids.length - 1];
     console.log('Yeni teklif:', newBid);
@@ -548,7 +548,7 @@ exports.completeListing = async (req, res) => {
     // Güncellenmiş ilanı populate et
     const updatedListing = await Listing.findById(listing._id)
       .populate('owner', 'name companyInfo.companyName')
-      .populate('category', 'name')
+      .populate('category', 'name image')
       .populate('bids.user', 'name companyInfo.companyName')
       .populate('winner', 'name companyInfo.companyName');
     
@@ -571,7 +571,7 @@ exports.completeListing = async (req, res) => {
 exports.getMyListings = async (req, res) => {
   try {
     const listings = await Listing.find({ owner: req.user._id })
-      .populate('category', 'name')
+      .populate('category', 'name image')
       .sort({ createdAt: -1 });
     
     res.json(listings);
@@ -585,10 +585,45 @@ exports.getMyBids = async (req, res) => {
   try {
     const listings = await Listing.find({ 'bids.user': req.user._id })
       .populate('owner', 'name companyInfo.companyName')
-      .populate('category', 'name')
+      .populate('category', 'name image')
       .sort({ 'bids.timestamp': -1 });
     
-    res.json(listings);
+    // Her ilan için kullanıcının teklif bilgilerini çıkar ve yeniden yapılandır
+    const userBids = [];
+    
+    listings.forEach(listing => {
+      // Bu ilandaki kullanıcının tekliflerini bul
+      const userBidsForListing = listing.bids.filter(bid => 
+        bid.user.toString() === req.user._id.toString()
+      );
+      
+      // Her teklif için yeni bir obje oluştur
+      userBidsForListing.forEach(bid => {
+        userBids.push({
+          _id: bid._id,
+          amount: bid.amount,
+          timestamp: bid.timestamp,
+          status: bid.status || 'pending',
+          listing: {
+            _id: listing._id,
+            title: listing.title,
+            description: listing.description,
+            category: listing.category,
+            startingPrice: listing.startingPrice,
+            currentPrice: listing.currentPrice,
+            endDate: listing.endDate,
+            expiresAt: listing.expiresAt,
+            status: listing.status,
+            owner: listing.owner
+          }
+        });
+      });
+    });
+    
+    // En yeni teklifleri önce göstermek için tarihe göre sırala
+    userBids.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    res.json(userBids);
   } catch (error) {
     res.status(500).json({ message: 'Sunucu hatası', error: error.message });
   }
@@ -675,7 +710,7 @@ exports.acceptBid = async (req, res) => {
     // Güncellenmiş ilanı tam detaylarla populate yaparak döndür
     const updatedListing = await Listing.findById(listing._id)
       .populate('owner', 'name email phone address companyInfo')
-      .populate('category', 'name')
+      .populate('category', 'name image')
       .populate({
         path: 'bids.user',
         select: 'name email phone address companyInfo'
@@ -803,7 +838,7 @@ exports.rejectBid = async (req, res) => {
     // Güncellenmiş ilanı tam detaylarla populate yaparak döndür
     const updatedListing = await Listing.findById(listing._id)
       .populate('owner', 'name email phone address companyInfo')
-      .populate('category', 'name')
+      .populate('category', 'name image')
       .populate({
         path: 'bids.user',
         select: 'name email phone address companyInfo'

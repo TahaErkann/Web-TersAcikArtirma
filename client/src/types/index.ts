@@ -26,6 +26,7 @@ export interface Category {
   name: string;
   description?: string;
   icon?: string;
+  image?: string;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -51,7 +52,7 @@ export interface Listing {
   startingPrice: number;
   currentPrice: number;
   endDate: string;
-  status: 'active' | 'ended' | 'cancelled';
+  status: 'active' | 'ended' | 'cancelled' | 'expired';
   seller: User | string;
   bids: Bid[];
   images: string[];

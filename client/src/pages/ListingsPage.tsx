@@ -32,69 +32,29 @@ function useQuery() {
 }
 
 // Kategori resimlerini döndüren yardımcı fonksiyon
-const getCategoryImage = (categoryName: string): string => {
-  // Kategori adına göre uygun resimleri belirle (örnek resimler)
-  const categoryImages: Record<string, string> = {
-    // Elektronik ve Teknoloji
-    "Elektronik": "https://images.unsplash.com/photo-1498049794561-7780e7231661?q=80&w=500",
-    "Teknoloji": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=500",
-    "Elektrik": "https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?q=80&w=500",
-    "Bilgisayar": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=500",
-    
-    // Ev ve Mobilya
-    "Mobilya": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=500",
-    "Ev Eşyaları": "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?q=80&w=500",
-    "Beyaz Eşya": "https://images.unsplash.com/photo-1584971217142-d63151e44256?q=80&w=500",
-    
-    // Giyim ve Tekstil
-    "Giyim": "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?q=80&w=500",
-    "Tekstil": "https://images.unsplash.com/photo-1620799140188-3b2a02fd9a77?q=80&w=500",
-    "Ayakkabı": "https://images.unsplash.com/photo-1595341888016-a392ef81b7de?q=80&w=500",
-    
-    // Yiyecek ve İçecek
-    "Gıda": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=500",
-    "İçecek": "https://images.unsplash.com/photo-1544145945-f90425340c7e?q=80&w=500",
-    "Tarım": "https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?q=80&w=500",
-    
-    // İnşaat ve Yapı Malzemeleri
-    "İnşaat": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=500",
-    "İnşaat Malzemeleri": "https://images.unsplash.com/photo-1621155346337-1d19495a11ab?q=80&w=500",
-    "Yapı Malzemeleri": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=500",
-    
-    // Ofis ve Kırtasiye
-    "Kırtasiye": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=500",
-    "Ofis Malzemeleri": "https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?q=80&w=500",
-    "Kitap": "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=500",
-    
-    // Otomotiv
-    "Otomotiv": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=500",
-    "Oto Yedek Parça": "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=500",
-    "Araç": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=500",
-    
-    // Spor ve Sağlık
-    "Spor": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=500",
-    "Fitness": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=500",
-    "Medikal": "https://images.unsplash.com/photo-1631815588090-d4bfec5b7e5c?q=80&w=500",
-    "Sağlık": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=500",
-    "Eczane": "https://images.unsplash.com/photo-1563453392212-326f5e854473?q=80&w=500",
-    "Kozmetik": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=500",
-    "Bakım Ürünleri": "https://images.unsplash.com/photo-1590439471364-192aa70c0b53?q=80&w=500",
-    
-    // Diğer Kategoriler
-    "Hırdavat/Nalbur": "https://images.unsplash.com/photo-1562516710-6a880c0c4e5f?q=80&w=500",
-    "Bahçe": "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?q=80&w=500",
-    "Kimyasal": "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?q=80&w=500",
-    "Temizlik": "https://images.unsplash.com/photo-1583947215259-38e31be8751f?q=80&w=500",
-    "Ambalaj": "https://images.unsplash.com/photo-1607344645866-009c320c5ab8?q=80&w=500",
-    "Endüstriyel": "https://images.unsplash.com/photo-1537427294423-eea2d66b0cc8?q=80&w=500"
-  };
-  
-  // Kategori adı varsa ve resmi tanımlıysa, o resmi döndür
-  if (categoryName && categoryImages[categoryName]) {
-    return categoryImages[categoryName];
+const getCategoryImage = (category: any, categories: Category[]): string => {
+  // Eğer kategori bir obje ise ve image alanı varsa, backend'den gelen resmi kullan
+  if (typeof category === 'object' && category?.image) {
+    return `http://localhost:5001${category.image}`;
   }
   
-  // Varsayılan resmi döndür - artık "SALE" yazılı bir resim değil, ticari bir ürün rafı
+  // Kategori string ise, kategoriler listesinden resmi bul
+  if (typeof category === 'string') {
+    const foundCategory = categories.find(cat => cat._id === category);
+    if (foundCategory && foundCategory.image) {
+      return `http://localhost:5001${foundCategory.image}`;
+    }
+  }
+  
+  // Kategori adına göre resim bul (obje ise)
+  if (typeof category === 'object' && category?.name) {
+    const foundCategory = categories.find(cat => cat.name === category.name);
+    if (foundCategory && foundCategory.image) {
+      return `http://localhost:5001${foundCategory.image}`;
+    }
+  }
+  
+  // Varsayılan resmi döndür - manuel resimler kaldırıldı
   return "https://images.unsplash.com/photo-1607082349566-187342175e2f?q=80&w=500";
 };
 
@@ -501,18 +461,27 @@ export const ListingsPage: React.FC = () => {
       setListings(prev => prev.filter(listing => listing._id !== id));
     };
 
+    // Kategori güncellendiğinde - ilanların resimlerini güncelle
+    const handleCategoryUpdated = (data: any) => {
+      console.log('Kategori güncellendi:', data);
+      // İlanları yeniden yükle ki kategori resimleri güncellensin
+      fetchListings();
+    };
+
     // Socket dinleyicileri
     on('listingCreated', handleNewListing);
     on('listingUpdated', handleUpdateListing);
     on('listingDeleted', handleDeleteListing);
+    on('categoryUpdated', handleCategoryUpdated);
 
     // Temizleme
     return () => {
       off('listingCreated', handleNewListing);
       off('listingUpdated', handleUpdateListing);
       off('listingDeleted', handleDeleteListing);
+      off('categoryUpdated', handleCategoryUpdated);
     };
-  }, [on, off]);
+  }, [on, off, fetchListings]);
 
   // Fiyat formatı
   const formatPrice = (price: number) => {
@@ -817,7 +786,7 @@ export const ListingsPage: React.FC = () => {
                       <CardMedia
                         component="img"
                         height="160"
-                        image={listing.images?.[0] || getCategoryImage(typeof listing.category === 'object' && listing.category ? listing.category.name : 'Genel')}
+                        image={listing.images?.[0] || getCategoryImage(listing.category, categories)}
                         alt={listing.title}
                         sx={{ 
                           objectFit: 'cover',

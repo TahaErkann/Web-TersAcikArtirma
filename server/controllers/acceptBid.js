@@ -107,7 +107,7 @@ const acceptBid = async (req, res) => {
     console.log("Detaylı kullanıcı bilgileriyle yükleniyor...");
     const updatedListing = await Listing.findById(listing._id)
       .populate('owner', 'name email phone address companyInfo')
-      .populate('category', 'name')
+      .populate('category', 'name image')
       .populate({
         path: 'bids.user',
         select: 'name email phone address companyInfo'
